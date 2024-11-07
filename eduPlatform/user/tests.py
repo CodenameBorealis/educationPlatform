@@ -31,5 +31,5 @@ class TestLogin(TestCase):
 
         self.assertIsNotNone(response)
         self.assertIsNotNone(response.json())
-        self.assertEquals(response.status_code, 200)
-        self.assertEquals(response.json()["success"], True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["success"], True)
