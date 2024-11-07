@@ -20,7 +20,7 @@ class Login(View):
     def post(self, request, *args, **kwargs): # Handle login request
         if not request:
             return 
-
+        
         json_data = json.loads(request.body)
 
         if not json_data or not json_data.get("username") or not json_data.get("password"): # If data is invalid return badrequest.
