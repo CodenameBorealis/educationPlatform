@@ -1,0 +1,20 @@
+.navigation-bar {
+    width: 100%;
+    background-color: #1C1E2D;
+}
+
+.brand-name {
+    font-family: "League Gothic", sans-serif;
+    font-size: 30px;
+    color: #418add;
+    transition: .5s ease;
+}
+
+.logo {
+    width: 45px;
+    height: 45px;
+}
+
+.brand-name:hover {
+    color: #9FE4FF;
+}
