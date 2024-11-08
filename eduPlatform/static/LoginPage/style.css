@@ -82,7 +82,7 @@ button {
     text-align: center;
     padding: 15px 40px;
     margin-top: 5px;
-    background-color: #b08bf8;
+    background-color: #ff8a1d;
     color: #fff;
     font-size: 14px;
     margin-left: auto;
@@ -95,7 +95,7 @@ button {
 
 button:hover {
     transform: translateY(-3px);
-    box-shadow: 0 2px 6px -1px rgba(182, 157, 230, 0.65);
+    box-shadow: 0 2px 6px -1px #ff8a1d;
 }
 
 button:hover:active {
@@ -117,9 +117,9 @@ input {
 }
 
 input:focus {
-    border-bottom: solid 1px #b69de6;
+    border-bottom: solid 1px #ff8a1d;
     outline: 0;
-    box-shadow: 0 2px 6px -8px rgba(182, 157, 230, 0.45);
+    box-shadow: 0 2px 6px -8px #c76c17;
 }
 
 .floating-label {
@@ -159,7 +159,7 @@ input:focus {
     height: auto;
     min-height: 100%;
     position: relative;
-    background-image: url("/static/LoginPage/form_background.webp");
+    background-image: url("/static/LoginPage/form_background.jpg");
     background-size: cover;
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
