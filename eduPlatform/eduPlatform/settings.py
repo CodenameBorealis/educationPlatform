@@ -135,3 +135,11 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Default primary user model
+
+AUTH_USER_MODEL = "user.CustomUser"
+
+# Login page
+
+LOGIN_URL = "login/"

@@ -16,11 +16,7 @@ class Home(View):
         if not request.user.is_authenticated:
             return redirect("/login")
 
-        context = {
-            "contextText": "Testing"
-        }
-
-        return render(request, self.template_name, context)
+        return render(request, self.template_name)
 
 class Login(View):
     template_name = "login.html"
@@ -33,7 +29,7 @@ class Login(View):
 
     def post(self, request, *args, **kwargs): # Handle login request
         if not request:
-            return 
+            return HttpResponseBadRequest("Missing request data.")
         
         json_data = json.loads(request.body)
 
