@@ -27,7 +27,7 @@ function logIn() {
 
     warn() // Clear any warnings that were displayed earlier
 
-    postHttpAsync("/user/login/", { // Send a post request to site.com/user/login/ and ask to log in.
+    postHttpAsync("/login/", { // Send a post request to site.com/user/login/ and ask to log in.
         "username": usernameInput.value,
         "password": passwordInput.value
     }, true, function(result) {
