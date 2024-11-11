@@ -63,4 +63,4 @@ class UserTestRequests(TestCase):
         result = self.client.get(f"/user/get_pfp/?user_id={self.user_id}")
 
         self.assertIsNotNone(result.headers, "Returned an empty response.")
-        self.assertEqual(result.status_code, 302, "Returned status code must be 302 (Redirect) because client is not logged in.")
+        self.assertEqual(result.status_code, 403, "Returned status code must be 403 (Forbidden) because client is not logged in.")
