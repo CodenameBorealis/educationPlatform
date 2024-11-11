@@ -13,6 +13,6 @@ class TestApi(TestCase):
 
         request = self.client.get("/api/testing_api/")
 
-        self.assertIsNotNone(request)
-        self.assertEqual(request.status_code, 200)
-        self.assertEqual(len(request.json()), 50)
+        self.assertIsNotNone(request.headers, "Returned an empty response.")
+        self.assertEqual(request.status_code, 200, "Returned status code is not 200.")
+        self.assertEqual(len(request.json()), 50, "Returned data length does not match the initial length of the created data.")
