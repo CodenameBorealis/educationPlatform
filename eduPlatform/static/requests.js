@@ -1,8 +1,14 @@
 function getHttpAsync(url) {
-    let xmlHttp = new XMLHttpRequest();
-    xmlHttp.open("GET", url, false);
-    xmlHttp.send(null);
-    return JSON.parse(xmlHttp.responseText);
+    try {
+        let xmlHttp = new XMLHttpRequest();
+        
+        xmlHttp.open("GET", url, false);
+        xmlHttp.send(null);
+
+        return JSON.parse(xmlHttp.responseText);
+    } catch (error) {
+        alert("Client request failed: error " + error.name + ": " + error.message + "\n" + error.stack)
+    }
 }
 
 async function postHttpAsync(url, data = {}, await_for_response = false, callback = function (data) {}, await_for_json = true) {
