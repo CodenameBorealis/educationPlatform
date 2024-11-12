@@ -11,13 +11,11 @@ import json
 class Home(View):
     template_name = "home.html"
 
-
     def get(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect("/login")
 
         return render(request, self.template_name)
-
 class Login(View):
     template_name = "login.html"
 
@@ -26,26 +24,3 @@ class Login(View):
             return redirect("home")
         
         return render(request, self.template_name)
-
-    def post(self, request, *args, **kwargs): # Handle login request
-        if not request:
-            return HttpResponseBadRequest("Missing request data.")
-        
-        json_data = json.loads(request.body)
-
-        if not json_data or not json_data.get("username") or not json_data.get("password"): # If data is invalid return badrequest.
-            return HttpResponseBadRequest("Missing json data.")
-
-        user = authenticate(request, username=json_data.get("username"), password=json_data.get("password"))
-
-        if user: # Successfully authenticated user, return success and redirect user
-            login(request, user)
-            return JsonResponse({
-                "success": True,
-                "error_message": ""
-            })
-        else: # Otherwise return false and specify the error
-            return JsonResponse({
-                "success": False,
-                "error_message": "Incorrect username or password"
-            })

@@ -48,12 +48,3 @@ class TestLogin(TestCase):
 
         self.assertIsNotNone(response.headers, "Recieved an empty response.")
         self.assertTemplateNotUsed(response, "login.html", "A wrong template was used while rendering the web page.")
-    
-    def test_login_post_request(self):
-        self.client.logout()
-        response = self.client.post("/login/", dumps({"username": "test", "password": "test"}), content_type="json")
-
-        self.assertIsNotNone(response.headers, "Recieved an empty response.")
-        self.assertIsNotNone(response.json(), "Recieved an empty json response.")
-        self.assertEqual(response.status_code, 200, "Returned code is not 200.")
-        self.assertEqual(response.json()["success"], True, "Json returned success: False. (Attempt unsuccessful)")
