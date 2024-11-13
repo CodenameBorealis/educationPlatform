@@ -17,10 +17,19 @@ class Home(View):
 
         return render(request, self.template_name)
 class Login(View):
-    template_name = "login.html"
+    template_name = "user/login.html"
 
     def get(self, request, *args, **kwargs):
         if request.user.is_authenticated: # If the user is logged in, just redirect them to the main page
             return redirect("home")
+        
+        return render(request, self.template_name)
+
+class ProfileSettings(View):
+    template_name = "user/profile_settings.html"
+    
+    def get(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect("/login")
         
         return render(request, self.template_name)

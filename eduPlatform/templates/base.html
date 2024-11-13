@@ -26,6 +26,10 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=League+Gothic&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
+
+    {% block style %}
+    
+    {% endblock %}
 </head>
 
 <!-- Store the csrf token in csrftoken variable for further usage -->
@@ -55,7 +59,7 @@
                 </button>
 
                 <div class="dropdown-menu">
-                    <a href="#" class="dropdown-item">Settings</a>
+                    <a href="/profile_settings" class="dropdown-item">Settings</a>
                     <a href="/user/logout" class="dropdown-item">Logout</a>
                 </div>
             </div>
@@ -69,6 +73,7 @@
     </div>
 
     {% block content %}
+    <p>This page is empty</p>
     {% endblock %}
 </body>
 
@@ -86,5 +91,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
     integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
     crossorigin="anonymous"></script>
+
+{% block scripts %}
+{% endblock %}
 
 </html>
