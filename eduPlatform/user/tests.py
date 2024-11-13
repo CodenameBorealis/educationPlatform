@@ -162,3 +162,82 @@ class UserTestUsernameRequest(TestCase):
         with self.assertRaises(AssertionError):
             self.get_response(999)
         
+class UserTestDataRequest(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_testuser()
+        
+        self.client = Client()
+        
+        logged_in = self.client.login(username="test", password="test")
+        self.assertTrue(logged_in, "Failed to log into testing account.")
+
+    def test_can_access_not_logged_in(self):
+        self.client.logout()
+        response = self.client.get("/user/get_userinfo/")
+        
+        self.assertIsNotNone(response.content, "Recieved an empty response.")
+        self.assertEqual(response.status_code, 403, "Code is not 403, you should not be able to access the page without being logged into an account.")
+    
+    def test_verify_data(self):
+        response = self.client.get("/user/get_userinfo/")
+        
+        self.assertIsNotNone(response.content, "Recieved an empty response.")
+        self.assertEqual(response.status_code, 200, "Code is not 200, request unsuccessful.")
+        
+        json = response.json()
+        
+        self.assertTrue(json.get("success"), "JSON indicates that request was not successful.")
+        self.assertIsNotNone(json.get("data"), "Returned data is none.")
+        
+        data = json.get("data")
+        verify_data = [
+            ("user_id", self.user.id),
+            ("username", self.user.username),
+            ("email", self.user.email),
+            ("description", self.user.description),
+            ("is_staff", self.user.is_staff),
+            ("is_superuser", self.user.is_superuser)
+        ]
+
+        for key, expected_value in verify_data:
+            self.assertEqual(data.get(key), expected_value, f"Invalid value {key} given.")
+
+class UserTestDescriptionSetRequest(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_testuser()
+        
+        self.client = Client()
+        
+        logged_in = self.client.login(username="test", password="test")
+        self.assertTrue(logged_in, "Failed to log into testing account.")
+    
+    def test_access_not_logged_in(self):
+        self.client.logout()
+        request = self.client.post("/user/set_description/")
+        
+        self.assertIsNotNone(request.headers, "Got an empty response.")
+        self.assertEqual(request.status_code, 403, "Status code is not 403, you should not be able to access the api without being logged in.")
+    
+    def test_request(self):
+        request = self.client.post("/user/set_description/", dumps({"description": "TEST_TEST_TEST"}), content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Got an empty response.")
+        self.assertEqual(request.status_code, 200, "Status code not 200, API call failed.")
+        
+        self.assertIsNotNone(request.json(), "Got an empty JSON response")
+        json = request.json()
+        
+        self.assertIsNotNone(json.get("success"), "JSON does not contain success key.")
+        self.assertTrue(json.get("success"), "JSON success is false.")
+        
+        usr = get_user_model().objects.get(id=self.user.id)
+        
+        self.assertEqual(usr.description, "TEST_TEST_TEST", "API failed to set user description.")
+    
+    def test_request_empty(self):
+        request = self.client.post("/user/set_description/", content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 400, "Code is not 400 (Bad request)")

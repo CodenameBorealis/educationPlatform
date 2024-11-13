@@ -12,8 +12,11 @@
 
 <div class="profile-section">
     <div class="profile-overview">
-        <img src="/user/get_pfp/?user_id=-1" alt="Profile Picture">
-        <h2 id="profile_username">username</h2>
+        <button id="change_pfp">
+            <span class="pfp_change_text">Change</span>
+            <img src="/user/get_pfp/?user_id=-1" alt="Profile Picture">
+        </button>
+        <h2 id="profile_username"></h2>
     </div>
 
     <div class="profile-tabs">
@@ -26,25 +29,33 @@
         <div class="profile-tab-section" id="tab_profile" style="display: block;">
             <div class="profile-info">
                 <label>Username:</label>
-                <span>admin</span>
-                <button class="edit-button"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
+                <span id="username"></span>
+                <button class="edit-button" id="edit_username"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
             </div>
             
             <div class="profile-info">
                 <label>Email:</label>
-                <span>admin@gmail.com</span>
-                <button class="edit-button"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
+                <span id="email"></span>
+                <button class="edit-button" id="edit_email"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
             </div>
             
             <div class="profile-info" style="margin-bottom: 0px;">
                 <label>Profile description:</label>
             </div>
             
-            <textarea class="profile-description">Hello world!</textarea>
+            <textarea id="description" maxlength="350" class="form-control profile-description mb-3 profile-description"></textarea>
+
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary" id="save_description">Save</button>
+            </div>
         </div>
 
         <div class="profile-tab-section" id="tab_security">
-
+            <div class="profile-info">
+                <label>Password:</label>
+                <span>*******</span>
+                <button class="edit-button" id="edit_password"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
+            </div>
         </div>
 
         <div class="profile-tab-section" id="tab_etc">
@@ -52,5 +63,11 @@
         </div>
     </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+
+<script src="{% static 'user/profile.js' %}"></script>
 
 {% endblock %}

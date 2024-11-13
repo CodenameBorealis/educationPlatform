@@ -8,7 +8,9 @@ from .managers import CustomUserManager
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(_("Username"), unique=True, max_length=50)
     email = models.EmailField(_("Email address"), unique=True, null=False, default="")
+    
     profile_picture = models.ImageField(_("Profile picture"), blank=True)
+    description = models.CharField(_("Profile description"), unique=False, max_length=350, default="Hi, I'm new around here!")
     
     is_staff = models.BooleanField(_("Is staff"), default=False)
     is_active = models.BooleanField(_("Is active"), default=True)

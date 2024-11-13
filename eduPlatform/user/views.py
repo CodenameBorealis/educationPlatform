@@ -10,7 +10,7 @@ from json import loads
 
 # Create your views here.
 
-# A class responsible for giving out the profile pictures of users /user/get_pfp/?user_id={user_id}
+# A class responsible for giving out the profile pictures of users
 class GetProfilePicture(View):
     pics_path = settings.BASE_DIR / "uploads/profile_pictures"
     default = pics_path / "Pfp_default.png"
@@ -69,6 +69,58 @@ class GetUserName(View):
                 "username": user.username
             }
         })
+
+# Class responsible for getting user information
+class GetUserInfo(View):
+    def get(self, request, *args, **kwargs):
+        # Restrict usage only for authenticated users
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponseForbidden("You must be logged in to access this api.")
+        
+        user = request.user
+        
+        return JsonResponse({ # Return all the data about their account
+            "success": True,
+            "data": {
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "description": user.description,
+                "date_joined": str(user.date_joined),
+                "is_staff": user.is_staff,
+                "is_superuser": user.is_superuser
+            }
+        })
+
+# Class responsible for saving user description
+class SaveDescription(View):
+    def post(self, request, *args, **kwargs):
+        # Make sure user is logged in
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponseForbidden("You must be logged in to access this api.")
+
+        json_data = loads(request.body)
+        
+        if not json_data or not json_data.get("description"):
+            return HttpResponseBadRequest("No json data given.")
+        
+        if len(json_data.get("description")) > 350:
+            return JsonResponse({
+                "success": False,
+            })
+
+        try:
+            user = request.user
+            user.description = json_data.get("description")
+            user.save()
+            
+            return JsonResponse({
+                "success": True,
+            })
+        except Exception:
+            return JsonResponse({
+                "success": False,
+            })
 
 # Class responsible for logging the user into the account
 class Login(View):

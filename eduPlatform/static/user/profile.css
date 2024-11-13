@@ -18,6 +18,59 @@ body {
 
 /* Profile Overview */
 .profile-overview {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+#change_pfp {
+    position: relative;
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    outline: none;
+}
+
+#change_pfp img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    transition: filter 0.3s ease;
+}
+
+#change_pfp:hover img {
+    filter: brightness(50%); /* Darkens the profile picture on hover */
+}
+
+.pfp_change_text {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform: translate(-50%, 50%);
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none; /* Prevents the text from interfering with hover detection */
+}
+
+#change_pfp:hover .pfp_change_text {
+    opacity: 1; /* Shows the text when hovering over the profile picture */
+}
+
+#profile_username {
+    margin-top: 10px;
+    color: #ddd;
+    font-size: 24px;
+    text-align: center;
+}
+
+.profile-overview {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -32,11 +85,21 @@ body {
     margin-bottom: 10px;
 }
 
+.profile-overview button {
+    background: none;
+    border: none;
+}
+
+.profile-overview button:focus {
+    outline: none;
+}
+
 .profile-overview h2 {
     font-size: 24px;
     margin: 0;
     color: #ddd;
     text-align: center;
+    margin-bottom: 20px;
 }
 
 /* Profile Tabs */
@@ -163,6 +226,8 @@ header a:hover {
     margin-top: 5px;
     text-align: left;
     transition: .3s;
+    min-height: 11ch;
+    max-height: 11ch;
 }
 
 .profile-description:focus {
@@ -189,4 +254,20 @@ header a:hover {
 .icon-edit {
     width: 20px;
     height: 20px;
+}
+
+.profile-save-btn {
+    text-align: right; /* Align the save button to the right of the textarea */
+    margin-top: 10px;
+}
+
+.save-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
