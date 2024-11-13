@@ -1,11 +1,16 @@
-function loadUsername() {
-    response = getHttpAsync("/user/get_username/?user_id=-1")
+async function loadUsername() {
+    try {
+        const response = await getHttpAsync("/user/get_username/?user_id=-1");
+        const json = await response.json()
 
-    if (response["success"] == false) {
-        return
+        if (!response || response["success"] === false) {
+            return
+        }
+
+        document.getElementById("username_text").textContent = json["data"]["username"]
+    } catch (error) {
+        console.error("Error loading username:", error)
     }
-
-    username_text = document.getElementById("username_text").textContent = response["data"]["username"]
 }
 
 function main() {

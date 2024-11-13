@@ -1,70 +1,74 @@
-function getHttpAsync(url) {
+async function getHttpAsync(url) {
     try {
-        let xmlHttp = new XMLHttpRequest();
+        const response = await fetch(url, { method: 'GET' });
         
-        xmlHttp.open("GET", url, false);
-        xmlHttp.send(null);
-
-        return JSON.parse(xmlHttp.responseText);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        return await response;
     } catch (error) {
-        alert("Client request failed: error " + error.name + ": " + error.message + "\n" + error.stack)
+        console.error(`Client request failed: ${error.message}`, error.stack);
+        alert(`Client request failed: ${error.message}`);
+        return null;
     }
 }
 
-async function postHttpAsync(url, data = {}, await_for_response = false, callback = function (data) {}, await_for_json = true) {
+async function postHttpAsync(url, data = {}, awaitForResponse = false, callback = () => {}, awaitForJson = true) {
     try {
         const response = await fetch(url, {
             method: 'POST',
-            body: JSON.stringify(data),
             headers: {
-                'Content-Type': "application/json",
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken || ""
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (awaitForResponse) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            if (awaitForJson) {
+                const responseData = await response.json();
+                callback(responseData);
+                return responseData;
+            }
+
+            callback({});
+        }
+    } catch (error) {
+        console.error(`Client request failed: ${error.message}`, error.stack);
+        alert(`Client request failed: ${error.message}`);
+    }
+}
+
+async function postFormHttpAsync(url, formData, files = null, awaitForResponse = false, callback = () => {}, awaitForJson = true) {
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
                 'X-CSRFToken': csrftoken || ""
             }
         });
 
-        if (await_for_response && response.ok) {
-            if (await_for_json) {
-                data = await response.json()
-
-                if (callback) {
-                    callback(data)
-                } else {
-                    return data
-                }
-
-                return
-            }
-            callback({})
-        } else {
-            window.alert(response.statusText + " (Error code: " + response.status + ")")
-        }
-    } catch (error) {
-        alert("Client request failed: error " + error.name + ": " + error.message + "\n" + error.stack)
-    }
-}
-
-async function postFormHttpAsync(url, form_data, files=null, await_for_response = false, callback = function (data) {}, await_for_json = true) {
-    try {
-        const response = await fetch(url, {
-            method: 'POST',
-            files: files,
-            mode: "no-cors",
-            body: form_data,
-            headers: {'X-CSRFToken': csrftoken || ""}
-        });
-
-        if (await_for_response && response.ok) {
-            if (await_for_json) {
-                let data = await JSON.parse(response.body)
-                callback(data)
-                return
+        if (awaitForResponse) {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            callback({})
-        } else {
-            window.alert(response.statusText + " (Error code: " + response.status + ")")
+            if (awaitForJson) {
+                const responseData = await response.json();
+                callback(responseData);
+                return responseData;
+            }
+
+            callback({});
         }
     } catch (error) {
-        alert("Client request failed: error " + error.name + ": " + error.message + "\n" + error.stack)
+        console.error(`Client request failed: ${error.message}`, error.stack);
+        alert(`Client request failed: ${error.message}`);
     }
 }
