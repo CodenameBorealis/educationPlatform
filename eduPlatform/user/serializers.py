@@ -40,6 +40,9 @@ class UserSerializer(serializers.Serializer):
     def validate_username(self, value):
         User = get_user_model()
         
+        if len(value) > 50:
+            raise serializers.ValidationError("Username can't be over 50 characters long.")
+        
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username already exists.")
         

@@ -285,7 +285,10 @@ class UserTestUsernameSetRequest(TestCase):
         self.assertFalse(request.json().get("success"), "Request was successful for an invalid password.")
         
     def test_request_long_username(self):
-        request = self.client.post("/user/set_username/", dumps({"username": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", "password": "test"}), content_type="json")
+        request = self.client.post("/user/set_username/", dumps({"username": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789s", "password": "test"}), content_type="json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
-        self.assertEqual(request.status_code, 400, "Status code is not 400 (Bad request).")
+        self.assertEqual(request.status_code, 200, "Status code is not 200.")
+        
+        self.assertIsNotNone(request.json(), "Request JSON is missing.")
+        self.assertEqual(request.json().get("success"), False, "Successfully set username with over 50 characters.")

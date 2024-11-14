@@ -187,7 +187,7 @@ class ChangeUsername(View):
             serializer = UserSerializer()
             validated = serializer.validate_username(json.get("username"))
             
-            user.username = json.get("username")
+            user.username = validated
             user.save()
             
             return JsonResponse({
