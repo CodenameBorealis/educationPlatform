@@ -1,0 +1,187 @@
+/* General page style */
+
+* {
+    font-family: "Montserrat", sans-serif;
+}
+
+
+/* Naviation bar style */
+
+.navigation-bar {
+    width: 100%;
+    background-color: #1C1E2D;
+    /* z-index: 5; */
+}
+
+.brand-name {
+    font-family: "League Gothic", sans-serif;
+    font-size: 30px;
+    color: #418add;
+    transition: .5s ease;
+}
+
+.logo {
+    width: 45px;
+    height: 45px;
+}
+
+.brand-name:hover {
+    color: #9FE4FF;
+}
+
+.nv-link {
+    margin-right: 20px;
+    margin-left: 20px;
+    color: white;
+    font: "Montserrat", sans-serif;
+    text-align: center;
+    font-weight: bolder;
+    position: relative;
+    transition: .3s;
+}
+
+.nv-link:hover {
+    color: lightblue;
+    text-decoration: none;
+    text-shadow: 0 5px 15px lightblue;
+}
+
+.nv-link::before {
+    content: '';
+    border-bottom: 2px solid #ffffff;
+    padding: 0 10px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: 0;
+    transition: 0.3s;
+    transform: translateY(5px);
+}
+
+.nv-link:hover:before {
+    border-bottom: 2px solid lightblue;
+    width: 100%;
+    padding: 0;
+}
+
+.profile-button {
+    background: none;
+    border: none;
+    margin-right: 20px;
+    margin-left: 20px;
+    color: white;
+    font: "Montserrat", sans-serif;
+    font-weight: bolder;
+    transition: .3s;
+    margin-bottom: 10px;
+    transform: translateY(5px);
+}
+
+.profile-button:hover {
+    cursor: pointer;
+    color: lightblue;
+    text-shadow: 0 5px 15px lightblue;
+}
+
+.profile-button:focus-visible,
+.profile-button:focus {
+    outline: none;
+}
+
+.profile-picture {
+    border-radius: 50%;
+}
+
+.profile-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: none;
+    background: none;
+    padding: 0;
+}
+
+.profile-button h1 {
+    margin: 0;
+    font-size: 1em;
+    font-weight: bolder;
+}
+
+.profile-button #username_text {
+    font-size: 16px;
+    margin: 0;
+}
+
+.navbar-toggler {
+    display: none;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 30px;
+    height: 24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1100; 
+}
+
+.navbar-toggler:focus {
+    outline: none;
+}
+
+.navbar-toggler span {
+    display: block;
+    width: 100%;
+    height: 3px;
+    background-color: #ffffff;
+    border-radius: 3px;
+    transition: transform 0.3s, opacity 0.3s;
+}
+
+.navbar-toggler.open span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.navbar-toggler.open span:nth-child(2) {
+    opacity: 0;
+}
+
+.navbar-toggler.open span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -6px);
+}
+
+@media (max-width: 960px) {
+    .navbar-toggler {
+        display: flex;
+    }
+    
+    .navbar_collapse {
+        display: none !important;
+        flex-direction: column;
+        backdrop-filter: blur(10px);
+        background: rgba(0, 8, 32, 0.5);
+        position: absolute !important;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        padding: 10px;
+        z-index: 1050;
+        transition: .3s;
+    }
+    
+    .navbar_collapse.shown {
+        display: flex !important;
+    }
+
+    .navbar-links > a {
+        margin-bottom: 20px;
+    }
+
+    .navbar-links {
+        display: flex !important;
+        flex-direction: column;
+    }
+    
+}

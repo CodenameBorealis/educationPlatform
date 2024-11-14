@@ -15,10 +15,10 @@
         integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
 
     <!-- Load background gradient css file -->
-    <link rel="stylesheet" href="{% static 'common/background_gradient.css' %}">
+    <link rel="stylesheet" href="{% static 'common/css/background_gradient.css' %}">
 
     <!-- Main base.css -->
-    <link rel="stylesheet" href="{% static 'common/base.css' %}">
+    <link rel="stylesheet" href="{% static 'common/css/base.css' %}">
 
     <!-- Google fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,7 +28,7 @@
         rel="stylesheet">
 
     {% block style %}
-    
+
     {% endblock %}
 </head>
 
@@ -40,27 +40,37 @@
 <body>
     <nav class="navigation-bar navbar navbar-expand-lg sticky-top d-flex justify-content-between">
         <a href="/" class="nav-item brand-name navbar-brand">
-            <img src="{% static 'common/Logo.png' %}" alt="" height="30" width="30"
+            <img src="{% static 'common/img/Logo.png' %}" alt="" height="30" width="30"
                 class="d-inline-block align-top logo">
             Project: EDUCATE
         </a>
 
-        <div class="nav-item navbar-links">
-            <a href="#" class="navbar-link nv-link">Library</a>
-            <a href="#" class="navbar-link nv-link">Diary</a>
-            <a href="#" class="navbar-link nv-link">Lessons</a>
-        </div>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+            aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar_toggler_icon"></span>
+            <span class="navbar_toggler_icon"></span>
+            <span class="navbar_toggler_icon"></span>
+        </button>
 
-        <div class="nav-item">
-            <div class="dropdown">
-                <button class="profile-button display-flex" type="button" data-toggle="dropdown"
-                    aria-haspopup="true" aria-expanded="false">
-                    <h1 id="username_text">user_name</h1> <img src="/user/get_pfp/?user_id=-1" alt="" height="50" width="50" class="profile-picture">
-                </button>
+        <div class="navbar_collapse navigation-bar navbar d-flex justify-content-between" id="navbarContent">
+            <div class="nav-item navbar-links">
+                <a href="#" class="navbar-link nv-link">Library</a>
+                <a href="#" class="navbar-link nv-link">Diary</a>
+                <a href="#" class="navbar-link nv-link">Lessons</a>
+            </div>
 
-                <div class="dropdown-menu">
-                    <a href="/profile_settings" class="dropdown-item">Settings</a>
-                    <a href="/user/logout" class="dropdown-item">Logout</a>
+            <div class="nav-item">
+                <div class="dropdown">
+                    <button class="profile-button display-flex" type="button" data-toggle="dropdown"
+                        aria-haspopup="true" aria-expanded="false">
+                        <h1 id="username_text">user_name</h1> <img src="/user/get_pfp/?user_id=-1" alt="" height="50"
+                            width="50" class="profile-picture">
+                    </button>
+
+                    <div class="dropdown-menu">
+                        <a href="/profile_settings" class="dropdown-item">Settings</a>
+                        <a href="/user/logout" class="dropdown-item">Logout</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -78,8 +88,8 @@
 </body>
 
 <!-- Add dependencies  -->
-<script src="{% static 'requests.js' %}"></script>
-<script src="{% static 'common/base.js' %}"></script>
+<script src="{% static 'common/js/requests.js' %}"></script>
+<script src="{% static 'common/js/base.js' %}"></script>
 
 <!-- Bootstrap -->
 <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
