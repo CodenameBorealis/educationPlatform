@@ -2,17 +2,12 @@
 <html lang="en">
 
 {% load static %}
-{% csrf_token %}
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project: Educate</title>
-
-    <script>
-        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-    </script>
-
+    
     <link rel="stylesheet" href="{% static 'LoginPage/style.css' %}">
 </head>
 
@@ -46,7 +41,12 @@
     </div>
 </body>
     
+{% csrf_token %}
+<script>
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+
 <script src="{% static 'LoginPage/login.js' %}"></script>
-<script src="{% static 'requests.js' %}"></script>
+<script src="{% static 'common/js/requests.js' %}"></script>
 
 </html>

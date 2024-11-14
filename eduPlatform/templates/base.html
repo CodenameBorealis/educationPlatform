@@ -2,11 +2,11 @@
 <html lang="en">
 
 {% load static %}
-{% csrf_token %}
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'common/img/Logo.ico' %}">
 
     <title>Project: EDUCATE</title>
 
@@ -27,8 +27,9 @@
         href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=League+Gothic&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
         rel="stylesheet">
 
-    {% block style %}
+    {% csrf_token %}
 
+    {% block style %}
     {% endblock %}
 </head>
 
@@ -40,7 +41,7 @@
 <body>
     <nav class="navigation-bar navbar navbar-expand-lg sticky-top d-flex justify-content-between">
         <a href="/" class="nav-item brand-name navbar-brand">
-            <img src="{% static 'common/img/Logo.png' %}" alt="" height="30" width="30"
+            <img src="{% static 'common/img/Logo-500.png' %}" alt="" height="30" width="30"
                 class="d-inline-block align-top logo">
             Project: EDUCATE
         </a>

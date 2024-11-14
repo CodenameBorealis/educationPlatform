@@ -26,6 +26,10 @@
                 <label for="repeatNewPassword">Repeat New Password</label>
                 <input type="password" id="repeatNewPassword" class="form-control" placeholder="Repeat new password">
             </div>
+
+            <span class="error-text"></span>
+            <br>
+
             <button type="submit" class="btn btn-success">Save</button>
             <button type="button" class="btn btn-secondary close-frame">Cancel</button>
         </form>
@@ -35,18 +39,20 @@
 <div class="change-frame-overlay" id="usernameChangeOverlay">
     <div class="change-frame">
         <h4>Change Username</h4>
-        <form id="emailChangeForm">
+        <div id="emailChangeForm">
             <div class="form-group">
                 <label for="newUsername">New Username</label>
-                <input type="text" id="newUsername" class="form-control" placeholder="Enter new username">
+                <input type="text" id="newUsername" class="form-control" placeholder="Enter new username" maxlength="50">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" class="form-control" placeholder="Enter your password">
             </div>
-            <button type="submit" class="btn btn-success">Save</button>
+            <span class="error-text"></span>
+            <br>
+            <button type="submit" class="btn btn-success" id="save_username">Save</button>
             <button type="button" class="btn btn-secondary close-frame">Cancel</button>
-        </form>
+        </div>
     </div>
 </div>
 
@@ -62,6 +68,8 @@
                 <label for="password">Password</label>
                 <input type="password" id="email_password" class="form-control" placeholder="Enter your password">
             </div>
+            <span class="error-text"></span>
+            <br>
             <button type="submit" class="btn btn-success">Save</button>
             <button type="button" class="btn btn-secondary close-frame">Cancel</button>
         </form>
@@ -77,6 +85,8 @@
             </div>
         </div>
         <input type="file" id="profilePicInput" accept="image/*" class="form-control-file">
+        <span class="error-text"></span>
+        <br>
         <button type="button" class="btn btn-success" id="saveProfilePic">Save</button>
         <button type="button" class="close-frame btn btn-secondary"">Cancel</button>
     </div>

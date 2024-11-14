@@ -261,7 +261,6 @@ header a:hover {
 
 .profile-save-btn {
     text-align: right;
-    /* Align the save button to the right of the textarea */
     margin-top: 10px;
 }
 
@@ -354,4 +353,9 @@ header a:hover {
     object-fit: cover;
     height: 300px;
     border-radius: 2%;
+}
+
+.error-text {
+    color: rgb(255, 59, 59);
+    transition: .1s;
 }

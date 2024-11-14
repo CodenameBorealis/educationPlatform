@@ -24,6 +24,40 @@ async function loadUserData() {
     description.value = data["description"]
 }
 
+function showError(parent_frame, error_text) {
+    const error_object = parent_frame.querySelector(".error-text")
+
+    console.log(parent_frame, error_object, error_text);
+
+    if (!error_object) {
+        return
+    }
+
+    if (!error_text || error_text === "") {
+        error_object.textContent = ""
+        return
+    }
+
+    error_object.textContent = error_text
+}
+
+function openFrame(overlayId) {
+    const overlay = document.getElementById(overlayId);
+    overlay.classList.add('shown');
+    overlay.classList.remove('hiding');
+}
+
+function closeFrame(overlay) {
+    const frame = overlay.querySelector('.change-frame');
+    frame.classList.add('hiding');
+    overlay.classList.add('hiding');
+
+    setTimeout(() => {
+        overlay.classList.remove('shown', 'hiding');
+        frame.classList.remove('hiding');
+    }, 400);
+}
+
 function changeTab(tab_name) {
     if (tab_name == currentTab) {
         return
@@ -77,21 +111,27 @@ function saveUserDescription() {
     }, true)
 }
 
-function openFrame(overlayId) {
-    const overlay = document.getElementById(overlayId);
-    overlay.classList.add('shown');
-    overlay.classList.remove('hiding');
-}
+function saveUserUsername() {
+    const username = document.getElementById("newUsername")
+    const password = document.getElementById("password")
 
-function closeFrame(overlay) {
-    const frame = overlay.querySelector('.change-frame');
-    frame.classList.add('hiding');
-    overlay.classList.add('hiding');
+    if (username.value == "" || password.value == "") {
+        return
+    }
 
-    setTimeout(() => {
-        overlay.classList.remove('shown', 'hiding');
-        frame.classList.remove('hiding');
-    }, 400);
+    edit_username.disabled = true
+
+    postHttpAsync("/user/set_username/", {"username": username.value, "password": password.value}, true, (data) => {
+        if (data["success"] == false) {
+            console.log(data["error_message"])
+
+            showError(document.getElementById("usernameChangeOverlay"), data["error_message"])
+            edit_username.disabled = false
+            return
+        }
+
+        document.location.reload()
+    }, true)
 }
 
 async function main() {
@@ -115,7 +155,7 @@ async function main() {
     description = document.getElementById("description")
 
     save_description = document.getElementById("save_description")
-    edit_username = document.getElementById("edit_username")
+    edit_username = document.getElementById("save_username")
     edit_email = document.getElementById("edit_email")
     edit_password = document.getElementById("edit_password")
 
@@ -161,6 +201,9 @@ async function main() {
             }
         }
     )
+
+
+    edit_username.addEventListener("click", saveUserUsername)
 }
 
 window.addEventListener("load", main)

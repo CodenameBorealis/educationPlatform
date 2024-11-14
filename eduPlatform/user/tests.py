@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
+from rest_framework.serializers import ValidationError
 from json import dumps
 
 # Create your tests here.
@@ -8,8 +9,7 @@ class UserManagersTests(TestCase):
     def test_create_user(self):
         User = get_user_model()
         
-        user = User.objects.create_user(username="testing", email="test@abc.com")
-        user.set_password("testingpassword")
+        user = User.objects.create_user(username="testing", email="test@abc.com", password="testingpassword")
 
         self.assertEqual(user.email, "test@abc.com")
         self.assertEqual(user.username, "testing")
@@ -18,17 +18,15 @@ class UserManagersTests(TestCase):
         self.assertFalse(user.is_staff)
         self.assertTrue(user.is_active)
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             User.objects.create_user()
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValidationError):
             User.objects.create_user(username="")
         
     def test_create_superuser(self):
         User = get_user_model()
-
-        user = User.objects.create_superuser(username="testing", email="test@abc.com")
-        user.set_password("testingpassword")
+        user = User.objects.create_superuser(username="testing", email="test@abc.com", password="testingpassword")
 
         self.assertEqual(user.email, "test@abc.com")
         self.assertEqual(user.username, "testing")
@@ -241,3 +239,53 @@ class UserTestDescriptionSetRequest(TestCase):
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 400, "Code is not 400 (Bad request)")
+
+class UserTestUsernameSetRequest(TestCase):
+    def setUp(self):
+        self.User = get_user_model()
+        self.user = self.User.objects.create_testuser()
+        
+        self.client = Client()
+        
+        logged_in = self.client.login(username="test", password="test")
+        self.assertTrue(logged_in, "Failed to log into testing account.")
+    
+    def test_can_access_not_logged_in(self):
+        self.client.logout()
+        request = self.client.post("/user/set_username/", dumps({"username": "test", "password": "test"}), content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 403, "Status code is not 403.")
+        
+    def test_request(self):
+        request = self.client.post("/user/set_username/", dumps({"username": "test2", "password": "test"}), content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Status code is not 200.")
+        
+        self.assertJSONEqual(request.content.decode("utf-8"), {"success": True, "error_message": ""}, "JSON response does not match.")
+    
+    def test_request_exists(self):
+        self.User.objects.create_user(username="testing_user", password="abcabc", email="email@email.com")
+        request = self.client.post("/user/set_username/", dumps({"username": "testing_user", "password": "test"}), content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Status code is not 200.")
+        
+        self.assertIsNotNone(request.json(), "JSON response is empty")
+        self.assertFalse(request.json().get("success"), "Request was successful for an already existing username.")
+    
+    def test_request_invalid_password(self):
+        request = self.client.post("/user/set_username/", dumps({"username": "testing_user", "password": "test_invalid"}), content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Status code is not 200.")
+        
+        self.assertIsNotNone(request.json(), "JSON response is empty")
+        self.assertFalse(request.json().get("success"), "Request was successful for an invalid password.")
+        
+    def test_request_long_username(self):
+        request = self.client.post("/user/set_username/", dumps({"username": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789", "password": "test"}), content_type="json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 400, "Status code is not 400 (Bad request).")

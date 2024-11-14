@@ -4,7 +4,11 @@ from django.http import *
 from django.conf import settings
 from django.shortcuts import redirect
 from django.contrib.auth import get_user_model, authenticate, login, logout
+
+from rest_framework.serializers import ValidationError
+
 from os.path import splitext
+from .serializers import UserSerializer, validation_error_to_string
 
 from json import loads
 
@@ -90,36 +94,6 @@ class GetUserInfo(View):
             }
         })
 
-# Class responsible for saving user description
-class SaveDescription(View):
-    def post(self, request, *args, **kwargs):
-        # Make sure user is logged in
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this api.")
-
-        json_data = loads(request.body)
-        
-        if not json_data or not json_data.get("description"):
-            return HttpResponseBadRequest("No json data given.")
-        
-        if len(json_data.get("description")) > 350:
-            return JsonResponse({
-                "success": False,
-            })
-
-        try:
-            user = request.user
-            user.description = json_data.get("description")
-            user.save()
-            
-            return JsonResponse({
-                "success": True,
-            })
-        except Exception:
-            return JsonResponse({
-                "success": False,
-            })
-
 # Class responsible for logging the user into the account
 class Login(View):
     def post(self, request, *args, **kwargs):
@@ -158,3 +132,71 @@ class Logout(View):
         logout(request)
         
         return redirect("/login")
+
+# Class responsible for saving user description
+class SaveDescription(View):
+    def post(self, request, *args, **kwargs):
+        # Make sure user is logged in
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponseForbidden("You must be logged in to access this api.")
+
+        json_data = loads(request.body)
+        
+        if not json_data or not json_data.get("description"):
+            return HttpResponseBadRequest("No json data given.")
+        
+        if len(json_data.get("description")) > 350:
+            return JsonResponse({
+                "success": False,
+            })
+
+        try:
+            user = request.user
+            user.description = json_data.get("description")
+            user.save()
+            
+            return JsonResponse({
+                "success": True,
+            })
+        except Exception:
+            return JsonResponse({
+                "success": False,
+            })
+
+# Class responsible for changing user's username
+class ChangeUsername(View):
+    def post(self, request, *args, **kwargs):
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponseForbidden("You must be logged in to access this api.")
+        
+        json = loads(request.body)
+        
+        User = get_user_model()
+        user = request.user
+        
+        if not json or not json.get("username") or not json.get("password"):
+            return HttpResponseBadRequest("Invalid JSON data.")
+            
+        if not user.check_password(json.get("password")):
+            return JsonResponse({
+                "success": False,
+                "error_message": "Invalid password."
+            })
+            
+        try:
+            serializer = UserSerializer()
+            validated = serializer.validate_username(json.get("username"))
+            
+            user.username = json.get("username")
+            user.save()
+            
+            return JsonResponse({
+                "success": True,
+                "error_message": ""
+            })
+        except ValidationError as error:
+            return JsonResponse({
+                "success": False,
+                "error_message": validation_error_to_string(error)
+            })
+        
