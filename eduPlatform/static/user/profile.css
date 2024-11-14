@@ -25,7 +25,7 @@ body {
     margin-bottom: 20px;
 }
 
-#change_pfp {
+#openProfilePicChange {
     position: relative;
     border: none;
     padding: 0;
@@ -34,15 +34,16 @@ body {
     outline: none;
 }
 
-#change_pfp img {
+#openProfilePicChange img {
     width: 120px;
     height: 120px;
     border-radius: 50%;
     transition: filter 0.3s ease;
 }
 
-#change_pfp:hover img {
-    filter: brightness(50%); /* Darkens the profile picture on hover */
+#openProfilePicChange:hover img {
+    filter: brightness(50%);
+    /* Darkens the profile picture on hover */
 }
 
 .pfp_change_text {
@@ -56,11 +57,13 @@ body {
     z-index: 2;
     opacity: 0;
     transition: opacity 0.3s ease;
-    pointer-events: none; /* Prevents the text from interfering with hover detection */
+    pointer-events: none;
+    /* Prevents the text from interfering with hover detection */
 }
 
-#change_pfp:hover .pfp_change_text {
-    opacity: 1; /* Shows the text when hovering over the profile picture */
+#openProfilePicChange:hover .pfp_change_text {
+    opacity: 1;
+    /* Shows the text when hovering over the profile picture */
 }
 
 #profile_username {
@@ -210,7 +213,7 @@ header a:hover {
 
 .profile-info span {
     color: #ddd;
-    flex-grow: 1; 
+    flex-grow: 1;
     text-align: left;
     padding-bottom: 10px;
 }
@@ -257,7 +260,8 @@ header a:hover {
 }
 
 .profile-save-btn {
-    text-align: right; /* Align the save button to the right of the textarea */
+    text-align: right;
+    /* Align the save button to the right of the textarea */
     margin-top: 10px;
 }
 
@@ -270,4 +274,84 @@ header a:hover {
     border-radius: 5px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+}
+
+/* User password change form */
+
+.change-frame-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    display: none;
+    /* Hidden by default */
+    justify-content: center;
+    align-items: center;
+    z-index: 1050;
+    /* Above Bootstrap modals */
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.change-frame-overlay.shown {
+    display: flex;
+    opacity: 1;
+}
+
+.change-frame-overlay.hiding {
+    opacity: 0;
+}
+
+.change-frame {
+    background-color: #1e2938;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    width: 100%;
+    max-width: 400px;
+    color: #fff;
+    animation: slideDown 0.4s ease forwards;
+}
+
+.change-frame.hiding {
+    animation: slideUp 0.4s ease forwards;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+}
+
+#profilePicInput {
+    margin: 10px;
+}
+
+#croppedImagePreview {
+    width: 300px;
+    height: auto;
+    object-fit: cover;
+    height: 300px;
+    border-radius: 2%;
 }

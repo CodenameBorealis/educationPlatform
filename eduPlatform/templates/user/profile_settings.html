@@ -10,9 +10,81 @@
 
 {% block content %}
 
+<div class="change-frame-overlay" id="passwordChangeOverlay">
+    <div class="change-frame">
+        <h4>Change Password</h4>
+        <form id="passwordChangeForm">
+            <div class="form-group">
+                <label for="oldPassword">Old Password</label>
+                <input type="password" id="oldPassword" class="form-control" placeholder="Enter old password">
+            </div>
+            <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input type="password" id="newPassword" class="form-control" placeholder="Enter new password">
+            </div>
+            <div class="form-group">
+                <label for="repeatNewPassword">Repeat New Password</label>
+                <input type="password" id="repeatNewPassword" class="form-control" placeholder="Repeat new password">
+            </div>
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-secondary close-frame">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<div class="change-frame-overlay" id="usernameChangeOverlay">
+    <div class="change-frame">
+        <h4>Change Username</h4>
+        <form id="emailChangeForm">
+            <div class="form-group">
+                <label for="newUsername">New Username</label>
+                <input type="text" id="newUsername" class="form-control" placeholder="Enter new username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" class="form-control" placeholder="Enter your password">
+            </div>
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-secondary close-frame">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<div class="change-frame-overlay" id="emailChangeOverlay">
+    <div class="change-frame">
+        <h4>Change Email</h4>
+        <form id="usernameChangeForm">
+            <div class="form-group">
+                <label for="newUsername">New Email</label>
+                <input type="text" id="newEmail" class="form-control" placeholder="Enter new email">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="email_password" class="form-control" placeholder="Enter your password">
+            </div>
+            <button type="submit" class="btn btn-success">Save</button>
+            <button type="button" class="btn btn-secondary close-frame">Cancel</button>
+        </form>
+    </div>
+</div>
+
+<div class="change-frame-overlay" id="profilePicChangeOverlay">
+    <div class="change-frame">
+        <h4>Change Profile Picture</h4>
+        <div class="cropped-preview-container" style="display: none;">
+            <div class="cropped-preview">
+                <img id="croppedImagePreview" src="#" alt="Cropped Preview">
+            </div>
+        </div>
+        <input type="file" id="profilePicInput" accept="image/*" class="form-control-file">
+        <button type="button" class="btn btn-success" id="saveProfilePic">Save</button>
+        <button type="button" class="close-frame btn btn-secondary"">Cancel</button>
+    </div>
+</div>
+
 <div class="profile-section">
     <div class="profile-overview">
-        <button id="change_pfp">
+        <button id="openProfilePicChange">
             <span class="pfp_change_text">Change</span>
             <img src="/user/get_pfp/?user_id=-1" alt="Profile Picture">
         </button>
@@ -30,20 +102,23 @@
             <div class="profile-info">
                 <label>Username:</label>
                 <span id="username"></span>
-                <button class="edit-button" id="edit_username"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
+                <button class="edit-button" id="openUsernameChange"><img src="{% static 'user/edit_icon.png' %}"
+                        alt="Edit" class="icon-edit"></button>
             </div>
-            
+
             <div class="profile-info">
                 <label>Email:</label>
                 <span id="email"></span>
-                <button class="edit-button" id="edit_email"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
+                <button class="edit-button" id="openEmailChange"><img src="{% static 'user/edit_icon.png' %}" alt="Edit"
+                        class="icon-edit"></button>
             </div>
-            
+
             <div class="profile-info" style="margin-bottom: 0px;">
                 <label>Profile description:</label>
             </div>
-            
-            <textarea id="description" maxlength="350" class="form-control profile-description mb-3 profile-description"></textarea>
+
+            <textarea id="description" maxlength="350"
+                class="form-control profile-description mb-3 profile-description"></textarea>
 
             <div class="d-flex justify-content-end">
                 <button class="btn btn-primary" id="save_description">Save</button>
@@ -54,7 +129,8 @@
             <div class="profile-info">
                 <label>Password:</label>
                 <span>*******</span>
-                <button class="edit-button" id="edit_password"><img src="{% static 'user/edit_icon.png' %}" alt="Edit" class="icon-edit"></button>
+                <button class="edit-button" id="openPasswordChange"><img src="{% static 'user/edit_icon.png' %}"
+                        alt="Edit" class="icon-edit"></button>
             </div>
         </div>
 
