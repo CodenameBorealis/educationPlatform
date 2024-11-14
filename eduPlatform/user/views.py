@@ -8,8 +8,6 @@ from os.path import splitext
 
 from json import loads
 
-# Create your views here.
-
 # A class responsible for giving out the profile pictures of users
 class GetProfilePicture(View):
     pics_path = settings.BASE_DIR / "uploads/profile_pictures"
