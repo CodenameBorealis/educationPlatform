@@ -75,3 +75,15 @@ class UserSerializer(serializers.Serializer):
     
 class UploadProfilePictureSerializer(serializers.Serializer):
     image = serializers.ImageField(required=True)
+
+class EmailChangeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, max_length=72)
+    
+    def validate_email(self, value):
+        User = get_user_model()
+        
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use")
+        
+        return value 

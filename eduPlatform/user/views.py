@@ -248,7 +248,6 @@ class ChangeProfilePicture(APIView):
             "success": True,
             "error_message": ""
         })
-        
 
 # Class responsible for changing user's password
 class ChangePassword(APIView):
@@ -292,3 +291,34 @@ class ChangePassword(APIView):
                 "success": False,
                 "error_message": serializers.validation_error_to_string(error)
             })
+    
+# Class responsible for changing user's email address        
+class ChangeEmail(APIView):
+    def post(self, request, *args, **kwargs):
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponseForbidden("You need to be logged into an account to access this API.")
+
+        serialzier = serializers.EmailChangeSerializer(data=request.data)
+        
+        if not serialzier.is_valid():
+            return JsonResponse({
+                "success": False,
+                "error_message": serializers.validation_errors_to_string(serialzier.errors)
+            })
+        
+        validated = serialzier.validated_data
+        
+        if not request.user.check_password(validated.get("password")):
+            return JsonResponse({
+                "success": False,
+                "error_message": "Invalid user password"
+            })
+        
+        request.user.email = validated.get("email")
+        request.user.save()
+        
+        return JsonResponse({
+            "success": True,
+            "error_message": ""
+        })
+        

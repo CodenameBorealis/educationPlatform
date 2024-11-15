@@ -24,7 +24,8 @@ async function loadUserData() {
     description.value = data["description"]
 }
 
-function showError(parent_frame, error_text) {
+function showError(overlay_id, error_text) {
+    const parent_frame = document.getElementById(overlay_id)
     const error_object = parent_frame.querySelector(".error-text")
 
     console.log(parent_frame, error_object, error_text);
@@ -125,7 +126,7 @@ function saveUserUsername() {
         if (data["success"] == false) {
             console.log(data["error_message"])
 
-            showError(document.getElementById("usernameChangeOverlay"), data["error_message"])
+            showError("usernameChangeOverlay", data["error_message"])
             edit_username.disabled = false
             return
         }
@@ -148,7 +149,7 @@ function saveProfilePicture() {
 
     postFormHttpAsync("/user/change_profile_picture/", formdata, true, (data) => {
         if (!data["success"]) {
-            showError(document.getElementById("profilePicChangeOverlay"), data["error_message"])
+            showError("profilePicChangeOverlay", data["error_message"])
             edit_profile_picture.disabled = false
 
             return
@@ -156,6 +157,31 @@ function saveProfilePicture() {
 
         document.location.reload()
     }, true)
+}
+
+function saveEmail() {
+    const newEmail = document.getElementById("newEmail")
+    const password = document.getElementById("email_password")
+
+    if (!newEmail.value || !password.value) {
+        return
+    }
+
+    edit_email.disabled = true
+
+    postHttpAsync("/user/set_email/", 
+        {"password": password.value, "email": newEmail.value}, true,
+        (data) => {
+            if (!data["success"]) {
+                showError("emailChangeOverlay", data["error_message"])
+                edit_email.disabled = false
+                
+                return
+            }
+
+            document.location.reload()
+        }, true
+    )
 }
 
 function savePassword() {
@@ -168,17 +194,21 @@ function savePassword() {
     }
 
     if (newPassword.value != newPasswordRepeat.value) {
-        showError(document.getElementById("passwordChangeForm"), "New passwords don't match.")
+        showError("passwordChangeForm", "New passwords don't match.")
         return
     }
 
-    showError(document.getElementById("passwordChangeForm"))
+    edit_password.disabled = true
+
+    showError("passwordChangeForm")
 
     postHttpAsync("/user/set_password/",
         {"old_password": oldPassword.value, "new_password": newPassword.value}, true,
         (data) => {
             if (!data["success"]) {
-                showError(document.getElementById("passwordChangeForm"), data["error_message"])
+                showError("passwordChangeForm", data["error_message"])
+                edit_password.disabled = false
+
                 return
             }
             
@@ -259,6 +289,7 @@ async function main() {
     edit_profile_picture.addEventListener("click", saveProfilePicture)
     edit_username.addEventListener("click", saveUserUsername)
     edit_password.addEventListener("click", savePassword)
+    edit_email.addEventListener("click", saveEmail)
 }
 
 window.addEventListener("load", main)

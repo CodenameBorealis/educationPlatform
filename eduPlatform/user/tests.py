@@ -392,3 +392,40 @@ class UserTestPasswordChangeRequest(TestCase):
         self.assertEqual(request.status_code, 200, "Response code is not 200.")
         
         self.assertFalse(request.json().get("success"), "Successfully set a duplicate password.")
+
+class UserTestEmailChangeRequest(TestCase):
+    def setUp(self):
+        self.User = get_user_model()
+        self.user = self.User.objects.create_testuser()
+        
+        self.client = Client()
+        
+        logged_in = self.client.login(username="test", password="test")
+        self.assertTrue(logged_in, "Failed to log into testing account.")
+    
+    def test_not_authorized(self):
+        self.client.logout()
+        request = self.client.post("/user/set_email/")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 403, "You shouldn't be able to access this API without being logged in.")
+    
+    def test_request(self):
+        request = self.client.post("/user/set_email/", dumps({"password": "test", "email": "test2@test.com"}), content_type="application/json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Status code is not 200.")
+        
+        self.assertJSONEqual(request.content.decode(), {"success": True, "error_message": ""}, "Invalid JSON response.")
+        self.assertEqual(self.User.objects.get(id=self.user.id).email, "test2@test.com", "Email has been left intact.")
+        
+    def test_invalid_request(self):
+        def _check_request(request):
+            self.assertIsNotNone(request.headers, "Recieved an empty response.")
+            self.assertEqual(request.status_code, 200, "Status code is not 200.")
+            
+            self.assertEqual(request.json().get("success"), False, "Invalid request was successful.")
+            
+        _check_request(self.client.post("/user/set_email/", dumps({"password": "test", "email": "test 2@test.com"}), content_type="application/json"))
+        _check_request(self.client.post("/user/set_email/", dumps({"password": "test", "email": "test@test.com"}), content_type="application/json"))
+        
