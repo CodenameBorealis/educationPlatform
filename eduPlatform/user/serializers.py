@@ -57,7 +57,7 @@ class UserSerializer(serializers.Serializer):
         
         if not re.match(r'^[a-zA-Z0-9_]+$', value):
             raise serializers.ValidationError(
-                "Username can only contain letters, numbers, underscores, and periods."
+                "Username can only contain letters, numbers and underscores."
             )
           
         return value

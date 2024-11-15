@@ -248,3 +248,47 @@ class ChangeProfilePicture(APIView):
             "success": True,
             "error_message": ""
         })
+        
+
+# Class responsible for changing user's password
+class ChangePassword(APIView):
+    def post(self, request, *args, **kwargs):
+        if not request.user or not request.user.is_authenticated:
+            return HttpResponseForbidden("You must be logged in to access this API.")
+        
+        data = request.data
+        user = request.user
+        
+        if not data.get("new_password") or not data.get("old_password"):
+            return HttpResponseBadRequest("Invalid JSON data.")
+        
+        if not user.check_password(data.get("old_password")):
+            return JsonResponse({
+                "success": False,
+                "error_message": "Invalid old password."
+            })
+        
+        if user.check_password(data.get("new_password")):
+            return JsonResponse({
+                "success": False,
+                "error_message": "Cannot change the password to the same one."
+            })
+        
+        serializer = serializers.UserSerializer()
+        
+        try:
+            validated = serializer.validate_password(data.get("new_password"))
+            user.set_password(validated)
+            user.save()
+            
+            login(request, user)
+            
+            return JsonResponse({
+                "success": True,
+                "error_message": ""
+            })
+        except ValidationError as error:
+            return JsonResponse({
+                "success": False,
+                "error_message": serializers.validation_error_to_string(error)
+            })

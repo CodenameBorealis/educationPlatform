@@ -158,6 +158,35 @@ function saveProfilePicture() {
     }, true)
 }
 
+function savePassword() {
+    const oldPassword = document.getElementById("oldPassword")
+    const newPassword = document.getElementById("newPassword")
+    const newPasswordRepeat = document.getElementById("repeatNewPassword")
+
+    if (!oldPassword.value || !newPassword.value || !newPasswordRepeat.value) {
+        return
+    }
+
+    if (newPassword.value != newPasswordRepeat.value) {
+        showError(document.getElementById("passwordChangeForm"), "New passwords don't match.")
+        return
+    }
+
+    showError(document.getElementById("passwordChangeForm"))
+
+    postHttpAsync("/user/set_password/",
+        {"old_password": oldPassword.value, "new_password": newPassword.value}, true,
+        (data) => {
+            if (!data["success"]) {
+                showError(document.getElementById("passwordChangeForm"), data["error_message"])
+                return
+            }
+            
+            document.location.reload()
+        }, true
+    )
+}
+
 async function main() {
     for (tab of tab_list) {
         const btn = document.getElementById("btn_" + tab)
@@ -181,7 +210,7 @@ async function main() {
     save_description = document.getElementById("save_description")
     edit_username = document.getElementById("save_username")
     edit_email = document.getElementById("edit_email")
-    edit_password = document.getElementById("edit_password")
+    edit_password = document.getElementById("saveNewPassword")
     edit_profile_picture = document.getElementById("saveProfilePic")
 
     await loadUserData()
@@ -229,6 +258,7 @@ async function main() {
 
     edit_profile_picture.addEventListener("click", saveProfilePicture)
     edit_username.addEventListener("click", saveUserUsername)
+    edit_password.addEventListener("click", savePassword)
 }
 
 window.addEventListener("load", main)

@@ -299,7 +299,7 @@ class UserTestUsernameSetRequest(TestCase):
         self.assertIsNotNone(request.json(), "Request JSON is missing.")
         self.assertEqual(request.json().get("success"), False, "Successfully set username with over 50 characters.")
 
-class ChangeProfilePictureTests(TestCase):
+class UserTestProfileChangeRequest(TestCase):
     def setUp(self):
         self.User = get_user_model()
         self.user = self.User.objects.create_testuser()
@@ -350,3 +350,45 @@ class ChangeProfilePictureTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(response.content.decode(), "You must be logged in to access this API.")
+
+class UserTestPasswordChangeRequest(TestCase):
+    def setUp(self):
+        self.User = get_user_model()
+        self.user = self.User.objects.create_testuser()
+        
+        self.client = Client()
+        
+        logged_in = self.client.login(username="test", password="test")
+        self.assertTrue(logged_in, "Failed to log into testing account.")
+    
+    def test_access_not_logged_in(self):
+        self.client.logout()
+        request = self.client.post("/user/set_password/", dumps({"new_password": "test2", "old_password": "test"}), content_type="application/json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 403, "You shouldn't be able to access the API without being logged into an account.")
+    
+    def test_request(self):
+        request = self.client.post("/user/set_password/", dumps({"new_password": "test2", "old_password": "test"}), content_type="application/json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Response code is not 200.")
+        
+        self.assertJSONEqual(request.content.decode(), {"success": True, "error_message": ""}, "Invalid JSON response given.")
+        self.assertTrue(self.User.objects.get(username="test").check_password("test2"), "Password has not been changed.")
+        
+    def test_request_invalid(self):
+        request = self.client.post("/user/set_password/", dumps({"new_password": "t est2", "old_password": "test"}), content_type="application/json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Response code is not 200.")
+        
+        self.assertFalse(request.json().get("success"), "Successfully set an incorrect password.")
+    
+    def test_request_duplicate(self):
+        request = self.client.post("/user/set_password/", dumps({"new_password": "test", "old_password": "test"}), content_type="application/json")
+        
+        self.assertIsNotNone(request.headers, "Recieved an empty response.")
+        self.assertEqual(request.status_code, 200, "Response code is not 200.")
+        
+        self.assertFalse(request.json().get("success"), "Successfully set a duplicate password.")
