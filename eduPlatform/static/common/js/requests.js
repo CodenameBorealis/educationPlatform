@@ -44,7 +44,7 @@ async function postHttpAsync(url, data = {}, awaitForResponse = false, callback 
     }
 }
 
-async function postFormHttpAsync(url, formData, files = null, awaitForResponse = false, callback = () => {}, awaitForJson = true) {
+async function postFormHttpAsync(url, formData, awaitForResponse = false, callback = () => {}, awaitForJson = true) {
     try {
         const response = await fetch(url, {
             method: 'POST',

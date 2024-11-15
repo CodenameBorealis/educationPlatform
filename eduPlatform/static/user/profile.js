@@ -1,7 +1,7 @@
 var currentTab = "profile";
 
 var profile_username, profile_picture, username, email, description, save_description
-var edit_username, edit_email, edit_password
+var edit_username, edit_email, edit_password, edit_profile_picture
 
 var originalDescription
 
@@ -134,6 +134,30 @@ function saveUserUsername() {
     }, true)
 }
 
+function saveProfilePicture() {
+    const file_input = document.getElementById('profilePicInput')
+
+    if (!file_input.files[0]) {
+        return
+    }
+
+    edit_profile_picture.disabled = true
+
+    formdata = new FormData()
+    formdata.append('image', file_input.files[0])
+
+    postFormHttpAsync("/user/change_profile_picture/", formdata, true, (data) => {
+        if (!data["success"]) {
+            showError(document.getElementById("profilePicChangeOverlay"), data["error_message"])
+            edit_profile_picture.disabled = false
+
+            return
+        }
+
+        document.location.reload()
+    }, true)
+}
+
 async function main() {
     for (tab of tab_list) {
         const btn = document.getElementById("btn_" + tab)
@@ -158,6 +182,7 @@ async function main() {
     edit_username = document.getElementById("save_username")
     edit_email = document.getElementById("edit_email")
     edit_password = document.getElementById("edit_password")
+    edit_profile_picture = document.getElementById("saveProfilePic")
 
     await loadUserData()
 
@@ -202,7 +227,7 @@ async function main() {
         }
     )
 
-
+    edit_profile_picture.addEventListener("click", saveProfilePicture)
     edit_username.addEventListener("click", saveUserUsername)
 }
 

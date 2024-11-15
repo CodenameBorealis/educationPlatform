@@ -1,7 +1,13 @@
 from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.test import TestCase, Client
+from django.core.files.uploadedfile import SimpleUploadedFile
+
 from rest_framework.serializers import ValidationError
 from json import dumps
+from PIL import Image
+
+import io
 
 # Create your tests here.
 
@@ -292,3 +298,56 @@ class UserTestUsernameSetRequest(TestCase):
         
         self.assertIsNotNone(request.json(), "Request JSON is missing.")
         self.assertEqual(request.json().get("success"), False, "Successfully set username with over 50 characters.")
+
+class ChangeProfilePictureTests(TestCase):
+    def setUp(self):
+        self.User = get_user_model()
+        self.user = self.User.objects.create_testuser()
+        
+        self.client = Client()
+        self.client.login(username='test', password='test')
+        
+        self.upload_path = settings.BASE_DIR / "uploads/profile_pictures_test"
+        self.upload_path.mkdir(parents=True, exist_ok=True)
+    
+    def tearDown(self):
+        for file in self.upload_path.glob('*'):
+            file.unlink()
+        self.upload_path.rmdir()
+
+    def generate_test_image(self):
+        with open(settings.BASE_DIR / "uploads/profile_pictures/Pfp_default.png", "rb") as img:
+            return SimpleUploadedFile(
+                "Pfp_default.png",
+                img.read(),
+                content_type="image/png"
+            )
+
+    def test_upload_valid_profile_picture(self):
+        img_bytes = self.generate_test_image()
+        response = self.client.post('/user/change_profile_picture/', {'image': img_bytes}, format='multipart')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {
+            "success": True,
+            "error_message": ""
+        })
+
+        profile_picture_path = self.upload_path / f"profile_picture_{self.user.id}.jpg"
+        self.assertEqual(self.User.objects.get(id=self.user.id).profile_picture, f"profile_picture_{self.user.id}.jpg")
+
+    def test_upload_invalid_file_type(self):
+        img_bytes = io.BytesIO(b'NotAnImage')
+        response = self.client.post('/user/change_profile_picture/', {'image': img_bytes}, format='multipart')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("success", response.json())
+        self.assertFalse(response.json()["success"])
+
+    def test_upload_unauthenticated_user(self):
+        self.client.logout()
+        img_bytes = self.generate_test_image()
+        response = self.client.post('/user/change_profile_picture/', {'image': img_bytes}, format='multipart')
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.content.decode(), "You must be logged in to access this API.")

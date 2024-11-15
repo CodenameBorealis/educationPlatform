@@ -5,12 +5,17 @@ import re
 
 def validation_error_to_string(error):
     if isinstance(error.detail, list):
-        return ', '.join(error.detail)  # If it's a list, just join the messages
+        return ', '.join(error.detail) 
     else:
         return ', '.join([f"{field}: {', '.join(msg)}" for field, msg in error.detail.items()])
             
- 
-
+def validation_errors_to_string(errorList):
+    error_messages = []
+    for field, errors in errorList.items():
+        error_messages.append(f"{field}: {', '.join(errors)}")
+        
+    return "\n".join(error_messages)
+    
 class UserSerializer(serializers.Serializer):
     username = serializers.CharField(
         max_length = 50,
@@ -36,6 +41,7 @@ class UserSerializer(serializers.Serializer):
     is_superuser = serializers.BooleanField(required=False, default=False)
     is_active = serializers.BooleanField(required=False, default=True)
     date_joined = serializers.DateField(required=False, default=timezone.now)
+    profile_picture = serializers.ImageField(required=False)
 
     def validate_username(self, value):
         User = get_user_model()
@@ -66,3 +72,6 @@ class UserSerializer(serializers.Serializer):
             )
           
         return value
+    
+class UploadProfilePictureSerializer(serializers.Serializer):
+    image = serializers.ImageField(required=True)
