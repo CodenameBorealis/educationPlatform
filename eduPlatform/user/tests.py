@@ -84,7 +84,7 @@ class AuthApiTest(TestCase):
         self.client = Client()
     
     def test_login_post_request(self):
-        response = self.client.post("/user/login/", dumps({"username": "test", "password": "test"}), content_type="json")
+        response = self.client.post("/user/login/", dumps({"username": "test", "password": "test"}), content_type="application/json")
 
         self.assertIsNotNone(response.headers, "Recieved an empty response.")
         self.assertIsNotNone(response.json(), "Recieved an empty json response.")
@@ -93,7 +93,7 @@ class AuthApiTest(TestCase):
         self.assertEqual(response.json().get("success"), True, "Json returned success: False. (Attempt unsuccessful)")
         
     def test_login_post_request_wrong_username(self):
-        response = self.client.post("/user/login/", dumps({"username": "test_wrong", "password": "test"}), content_type="json")
+        response = self.client.post("/user/login/", dumps({"username": "test_wrong", "password": "test"}), content_type="application/json")
 
         self.assertIsNotNone(response.headers, "Recieved an empty response.")
         self.assertIsNotNone(response.json(), "Recieved an empty json response.")
@@ -102,7 +102,7 @@ class AuthApiTest(TestCase):
         self.assertEqual(response.json().get("success"), False, "Json returned success: True, logged in with wrong username.")
         
     def test_login_post_request_wrong_password(self):
-        response = self.client.post("/user/login/", dumps({"username": "test", "password": "test_wrong"}), content_type="json")
+        response = self.client.post("/user/login/", dumps({"username": "test", "password": "test_wrong"}), content_type="application/json")
 
         self.assertIsNotNone(response.headers, "Recieved an empty response.")
         self.assertIsNotNone(response.json(), "Recieved an empty json response.")
@@ -225,7 +225,7 @@ class UserTestDescriptionSetRequest(TestCase):
         self.assertEqual(request.status_code, 403, "Status code is not 403, you should not be able to access the api without being logged in.")
     
     def test_request(self):
-        request = self.client.post("/user/set_description/", dumps({"description": "TEST_TEST_TEST"}), content_type="json")
+        request = self.client.post("/user/set_description/", dumps({"description": "TEST_TEST_TEST"}), content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Got an empty response.")
         self.assertEqual(request.status_code, 200, "Status code not 200, API call failed.")
@@ -241,7 +241,7 @@ class UserTestDescriptionSetRequest(TestCase):
         self.assertEqual(usr.description, "TEST_TEST_TEST", "API failed to set user description.")
     
     def test_request_empty(self):
-        request = self.client.post("/user/set_description/", content_type="json")
+        request = self.client.post("/user/set_description/", content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 400, "Code is not 400 (Bad request)")
@@ -258,13 +258,13 @@ class UserTestUsernameSetRequest(TestCase):
     
     def test_can_access_not_logged_in(self):
         self.client.logout()
-        request = self.client.post("/user/set_username/", dumps({"username": "test", "password": "test"}), content_type="json")
+        request = self.client.post("/user/set_username/", dumps({"username": "test", "password": "test"}), content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 403, "Status code is not 403.")
         
     def test_request(self):
-        request = self.client.post("/user/set_username/", dumps({"username": "test2", "password": "test"}), content_type="json")
+        request = self.client.post("/user/set_username/", dumps({"username": "test2", "password": "test"}), content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 200, "Status code is not 200.")
@@ -273,7 +273,7 @@ class UserTestUsernameSetRequest(TestCase):
     
     def test_request_exists(self):
         self.User.objects.create_user(username="testing_user", password="abcabc", email="email@email.com")
-        request = self.client.post("/user/set_username/", dumps({"username": "testing_user", "password": "test"}), content_type="json")
+        request = self.client.post("/user/set_username/", dumps({"username": "testing_user", "password": "test"}), content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 200, "Status code is not 200.")
@@ -282,7 +282,7 @@ class UserTestUsernameSetRequest(TestCase):
         self.assertFalse(request.json().get("success"), "Request was successful for an already existing username.")
     
     def test_request_invalid_password(self):
-        request = self.client.post("/user/set_username/", dumps({"username": "testing_user", "password": "test_invalid"}), content_type="json")
+        request = self.client.post("/user/set_username/", dumps({"username": "testing_user", "password": "test_invalid"}), content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 200, "Status code is not 200.")
@@ -291,7 +291,7 @@ class UserTestUsernameSetRequest(TestCase):
         self.assertFalse(request.json().get("success"), "Request was successful for an invalid password.")
         
     def test_request_long_username(self):
-        request = self.client.post("/user/set_username/", dumps({"username": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789s", "password": "test"}), content_type="json")
+        request = self.client.post("/user/set_username/", dumps({"username": "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789s", "password": "test"}), content_type="application/json")
         
         self.assertIsNotNone(request.headers, "Recieved an empty response.")
         self.assertEqual(request.status_code, 200, "Status code is not 200.")
@@ -307,13 +307,12 @@ class ChangeProfilePictureTests(TestCase):
         self.client = Client()
         self.client.login(username='test', password='test')
         
-        self.upload_path = settings.BASE_DIR / "uploads/profile_pictures_test"
-        self.upload_path.mkdir(parents=True, exist_ok=True)
+        self.upload_path = settings.BASE_DIR / "uploads/profile_pictures"
     
     def tearDown(self):
         for file in self.upload_path.glob('*'):
-            file.unlink()
-        self.upload_path.rmdir()
+            if "profile_picture_" in file.name:
+                file.unlink()
 
     def generate_test_image(self):
         with open(settings.BASE_DIR / "uploads/profile_pictures/Pfp_default.png", "rb") as img:
