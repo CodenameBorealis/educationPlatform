@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq$4hu@(hz3qv5rvagmz*!*au)
 DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1"]
-
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React development server
+]
 
 # Application definition
 
@@ -38,9 +40,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
-
+    
     # Third-party apps
     
+    'corsheaders',
     'rest_framework',
 
     # Own apps
@@ -59,6 +62,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'eduPlatform.urls'
