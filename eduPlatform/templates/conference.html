@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Interface</title>
+
+    <link rel="stylesheet" href="{% static 'conference/css/main.css' %}">
+
+    {% csrf_token %}
+</head>
+
+<script>
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+</script>
+
+<body>
+    <div class="container">
+        <aside class="users">
+            <h3>Users</h3>
+            <div class="user">
+                <div class="profile-pic"></div>
+                <span>Admin</span>
+            </div>
+        </aside>
+
+        <main class="main-area">
+            <div class="meeting-info">
+                <h2>Meeting Name</h2>
+            </div>
+
+            <div class="video-grid">
+                <div class="video-card">
+                    <div class="video">
+                        <div class="video-footer">
+                            <span>Admin</span>
+                            <div class="mute-icon"><img src="{% static 'conference/img/mic_muted.png' %}" alt=""></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="presentation">
+                <p>No presentation loaded yet.</p>
+            </div>
+        </main>
+
+        <aside class="chat">
+            <h3>Chat</h3>
+            <div class="chat-messages">
+                <div class="chat-message">
+                    <div class="profile-pic"></div>
+                    <div class="message-content">
+                        <span><strong>Admin</strong> <small>(13:02)</small></span>
+                        <p>Hello world!</p>
+                    </div>
+                </div>
+            </div>
+            <input type="text" placeholder="Type here to chat">
+        </aside>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -50,7 +50,8 @@ INSTALLED_APPS = [
 
     'pages',
     'api',
-    'user'
+    'user',
+    'conference'
 ]
 
 MIDDLEWARE = [

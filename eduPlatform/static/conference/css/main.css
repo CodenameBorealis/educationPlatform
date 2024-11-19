@@ -1,14 +1,26 @@
-.app {
-    display: grid;
-    grid-template-columns: 1fr 3fr 1fr;
-    height: 100vh;
-    background-color: #10182b;
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #1a1a2e;
+    color: #fff;
 }
 
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Users Section */
 .users {
-    background-color: #1c2738;
-    color: white;
+    width: 15%;
+    background-color: #121212;
     padding: 10px;
+    box-sizing: border-box;
+}
+
+.users h3 {
+    margin: 0;
+    margin-bottom: 10px;
 }
 
 .user {
@@ -17,7 +29,7 @@
     margin-bottom: 10px;
 }
 
-.profile-picture {
+.profile-pic {
     width: 40px;
     height: 40px;
     background-color: gray;
@@ -25,80 +37,114 @@
     margin-right: 10px;
 }
 
+.user span {
+    font-size: 1rem;
+}
+
+/* Main Meeting Area */
 .main-area {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    background-color: #131a2a;
-    color: white;
+    padding: 10px;
 }
 
 .meeting-info {
-    padding: 10px;
-    background-color: #1e2b40;
-    font-size: 18px;
-    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
 }
 
 .video-grid {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-grow: 1;
-    background-color: #0e1624;
+    gap: 10px;
+    margin-bottom: 20px;
 }
 
-.presentation {
-    height: 100px;
-    background-color: #1e2b40;
-    text-align: center;
-    line-height: 100px;
-    color: white;
-}
-
-.video-camera {
-    width: 200px;
+.video-card {
+    background-color: #2b2b3d;
+    border-radius: 5px;
     height: 150px;
-    background-color: #333;
+    flex: 1;
     position: relative;
-    margin: 10px;
-    color: white;
+    max-width: 250px;
+}
+
+.video {
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
+    background-color: #3b3b4d;
+    height: 100%;
+    border-radius: 5px;
 }
 
-.user-details {
-    padding: 5px;
-    background-color: rgba(0, 0, 0, 0.5);
+.video-footer {
+    padding: 10px;
+    padding-bottom: 5px;
+    margin-top: auto;
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
+.mute-icon img {
+    width: 15px;
+    height: 15px;
+}
+
+/* Presentation Area */
+.presentation {
+    background-color: #2b2b3d;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+}
+
+/* Chat Section */
 .chat {
-    background-color: #1c2738;
+    width: 20%;
+    background-color: #121212;
+    display: flex;
+    flex-direction: column;
     padding: 10px;
-    color: white;
-    overflow-y: auto;
+    box-sizing: border-box;
 }
 
-.message {
+.chat h3 {
+    margin: 0;
+    margin-bottom: 10px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+.chat-message {
     display: flex;
     margin-bottom: 10px;
 }
 
-.message-details {
+.message-content {
     margin-left: 10px;
 }
 
-.profile-picture {
-    width: 40px;
-    height: 40px;
-    background-color: gray;
-    border-radius: 50%;
+.message-content span {
+    font-size: 0.9rem;
+    color: #ccc;
 }
 
-.timestamp {
-    font-size: 12px;
-    color: gray;
-    margin-left: 5px;
+.message-content p {
+    margin: 5px 0 0;
+}
+
+input[type="text"] {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: #2b2b3d;
+    color: #fff;
+    width: 95%;
 }

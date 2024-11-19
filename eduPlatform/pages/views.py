@@ -6,8 +6,6 @@ from django.http import JsonResponse, HttpResponseBadRequest
 
 import json
 
-# Create your views here.
-
 class Home(View):
     template_name = "home.html"
 

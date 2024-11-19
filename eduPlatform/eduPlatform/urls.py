@@ -24,4 +24,5 @@ urlpatterns = [
     path('', include('pages.urls')),
     path('api/', include('api.urls')),
     path('user/', include('user.urls')),
+    path('conference/', include('conference.urls'))
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
