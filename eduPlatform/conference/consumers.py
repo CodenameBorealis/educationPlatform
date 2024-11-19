@@ -17,13 +17,9 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             await self.close(code=4001)
             return
     
-        await self.accept()
         conferenceExistsAsync = dsa(self.conferenceExists)
 
         if not await conferenceExistsAsync(self.room_token):
-            await self.send(text_data=json.dumps({
-                'error': 'Conference not found.'
-            }))
             await self.close(code=4002)
             return
     
@@ -31,6 +27,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        await self.accept()
     
     async def disconnect(self, *args, **kwargs):
         await self.channel_layer.group_discard(
@@ -39,17 +36,28 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         )
     
     async def receive(self, text_data):
-        # data = json.loads(text_data)
+        data = json.loads(text_data)
         
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'signaling_message',
-                'message': text_data
-            }
-        )
+        if data.get("type") == "join":        
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'signaling_message',
+                    'message': {
+                        'type': 'new-participant',
+                        'from': data['userId']
+                    }
+                }
+            )
+        else:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'signaling_message',
+                    'message': data
+                }
+            )
     
     async def signaling_message(self, event):
         message = event.get("message")
-        # await self.send(text_data=json.dumps(message))
-        await self.send(text_data=message)
+        await self.send(text_data=json.dumps(message))
