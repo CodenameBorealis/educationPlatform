@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static %}
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conference test</title>
+</head>
+
+<body>
+    <input type="text" id="room-token">
+    <button id="connect">Connect</button>
+    <button id="disconnect">Disconnect</button>
+    <br>
+    <input type="text" id="data">
+    <button id="send">Send data</button>
+    <br>
+    <span id="reply"></span>
+</body>
+
+<script src="{% static 'conference/js/testing.js' %}"></script>
+
+</html>

@@ -3,4 +3,4 @@ from django.views import View
 
 class Conference(View):
     def get(self, request, token, *args, **kwargs):
-        return render(request, "conference.html")
+        return render(request, "conference_test.html")

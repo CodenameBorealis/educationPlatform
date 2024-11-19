@@ -32,6 +32,8 @@ CORS_ALLOWED_ORIGINS = [
 
 # Application definition
 
+ASGI_APPLICATION = 'eduPlatform.asgi.application'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -43,6 +45,7 @@ INSTALLED_APPS = [
     
     # Third-party apps
     
+    'channels',
     'corsheaders',
     'rest_framework',
 
@@ -98,6 +101,11 @@ DATABASES = {
     }
 }
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
