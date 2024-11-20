@@ -10,11 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+load_dotenv(os.path.join(BASE_DIR, '.env.production'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -31,8 +33,6 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # Application definition
-
-ASGI_APPLICATION = 'eduPlatform.asgi.application'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -90,13 +90,22 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'eduPlatform.wsgi.application'
-
+ASGI_APPLICATION = 'eduPlatform.asgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE')
 DATABASES = {
     'default': {
+        # Production
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.getenv('DJANGO_DB_NAME'),
+        'USER': os.getenv('DJANGO_DB_USER'),
+        'PASSWORD': os.getenv('DJANGO_DB_PASSWORD'),
+        'HOST': os.getenv('DJANGO_DB_HOST'),
+        'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
+    } if IS_PRODUCTION == "TRUE" else {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }

@@ -3,3 +3,5 @@
 .venvs/*
 __pycache__/
 .vscode/*
+etc.txt
+.env.production
