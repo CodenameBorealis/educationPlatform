@@ -22,14 +22,15 @@ load_dotenv(os.path.join(BASE_DIR, '.env.production'))
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq$4hu@(hz3qv5rvagmz*!*au)'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq$4hu@(hz3qv5rvagmz*!*au)')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "192.168.1.148"]
+ALLOWED_HOSTS = ["127.0.0.1", "https://demodeck.ru"]
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React development server
+    "http://localhost:3000", 
+    "https://demodeck.ru",
 ]
 
 # Application definition
@@ -112,10 +113,31 @@ DATABASES = {
 }
 
 CHANNEL_LAYERS = {
-    'default': {
+    {
+        'BACKEND': 'channels.layers.RedisChannelLayer', 
+        'CONFIG': {
+            'hosts': [('localhost', 6379)],
+        },
+    } if IS_PRODUCTION == "TRUE" else {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
-    },
+    }
 }
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'my_cache_table',
+    },
+    'redis': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+CACHES['default'] = CACHES['redis']
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
