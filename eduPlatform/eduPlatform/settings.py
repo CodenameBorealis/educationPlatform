@@ -106,6 +106,7 @@ DATABASES = {
         'PASSWORD': os.getenv('DJANGO_DB_PASSWORD'),
         'HOST': os.getenv('DJANGO_DB_HOST'),
         'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
+        'CONN_MAX_AGE': 500
     } if IS_PRODUCTION == "TRUE" else {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
@@ -113,15 +114,27 @@ DATABASES = {
 }
 
 CHANNEL_LAYERS = {
-    {
+    'default': {
         'BACKEND': 'channels.layers.RedisChannelLayer', 
         'CONFIG': {
-            'hosts': [('localhost', 6379)],
+            'hosts': [os.getenv("REDIS_URL", 'redis://localhost:6379')],
         },
     } if IS_PRODUCTION == "TRUE" else {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     }
 }
+
+CACHES=None
+if IS_PRODUCTION == "TRUE":
+    CACHES = {
+        'default': {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": [os.getenv('REDIS_URL', 'redis://localhost:6379')],
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient"
+            }
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
