@@ -8,12 +8,14 @@ COPY ./eduPlatform /app
 COPY .env.production /app/eduPlatform/.env.production
 COPY requirements.txt /app/
 
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get -y install python3-dev default-libmysqlclient-dev build-essential pkg-config
+
 WORKDIR /app
 
 RUN python3 -m pip install --upgrade pip
-
-RUN pip3 install -r requirements.txt
-RUN pip3 uninstall --yes channels daphne
+RUN python3 -m pip install -r requirements.txt
+RUN python3 -m pip uninstall --yes channels daphne
 
 RUN python3 -m pip install channels["daphne"]
 
