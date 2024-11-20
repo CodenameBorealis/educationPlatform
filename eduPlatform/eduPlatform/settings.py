@@ -25,7 +25,7 @@ load_dotenv(os.path.join(BASE_DIR, '.env.production'))
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq$4hu@(hz3qv5rvagmz*!*au)')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('IS_PRODUCTION', 'FALSE') == "FALSE"
 
 ALLOWED_HOSTS = ["127.0.0.1", "https://demodeck.ru"]
 CORS_ALLOWED_ORIGINS = [
