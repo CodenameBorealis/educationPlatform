@@ -105,7 +105,7 @@ DATABASES = {
         'USER': os.getenv('DJANGO_DB_USER'),
         'PASSWORD': os.getenv('DJANGO_DB_PASSWORD'),
         'HOST': os.getenv('DJANGO_DB_HOST'),
-        'PORT': os.getenv('DJANGO_DB_PORT', '5432'),
+        'PORT': os.getenv('DJANGO_DB_PORT', '3306'),
         'CONN_MAX_AGE': 500
     } if IS_PRODUCTION == "TRUE" else {
         'ENGINE': 'django.db.backends.sqlite3',
