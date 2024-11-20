@@ -115,9 +115,9 @@ DATABASES = {
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels.layers.RedisChannelLayer', 
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [os.getenv("REDIS_URL", 'redis://localhost:6379')],
+            'hosts': [os.getenv('REDIS_URL', 'redis://localhost:6379')],
         },
     } if IS_PRODUCTION == "TRUE" else {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
