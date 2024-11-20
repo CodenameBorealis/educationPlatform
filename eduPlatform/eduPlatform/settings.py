@@ -124,18 +124,6 @@ CHANNEL_LAYERS = {
     }
 }
 
-CACHES=None
-if IS_PRODUCTION == "TRUE":
-    CACHES = {
-        'default': {
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": [os.getenv('REDIS_URL', 'redis://localhost:6379')],
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient"
-            }
-        }
-    }
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
