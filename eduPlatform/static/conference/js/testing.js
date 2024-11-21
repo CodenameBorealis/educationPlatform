@@ -6,6 +6,8 @@ const tokenInput = document.getElementById("room-token")
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws'
 const host = window.location.host
 
+var candidateQueue = {};
+
 var ws, localStream, currentToken
 var peers = {}
 
@@ -57,11 +59,11 @@ function getMyUserId() {
 function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
-            { urls: 'stun:turn.demodeck.ru:3478' },
+            { urls: 'stun:stun.l.google.com:19302' },
             { 
                 urls: 'turn:turn.demodeck.ru:3478',
-                username: 'turnServerUser',
-                credential: '3nDHFUy034TdVF2fd7fgd8df32jfgs4sh5937290'
+                username: 'turnServerAdmin',
+                credential: 'AYP04e23t6yusr223oui61aljfka7kwn3ez'
             }
         ]
     }
@@ -94,6 +96,10 @@ function createPeerConnection(remoteUserId) {
         document.getElementById("videos").appendChild(remoteVideo)
     }
 
+    if (candidateQueue[remoteUserId]) {
+        candidateQueue[remoteUserId].forEach(candidate => addIceCandidate(remoteUserId, candidate));
+        delete candidateQueue[remoteUserId];
+    }
     localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream))
 
     peers[remoteUserId] = peerConnection
@@ -125,6 +131,7 @@ function disconnectUser(userId) {
     const videoStream = document.getElementById(`video-${userId}`)
     if (videoStream) {
         videoStream.remove()
+        videoStream.srcObject = null
     }
 }
 
@@ -185,19 +192,23 @@ async function start() {
     }
 }
 
-async function addIceCandidate(from, candidate) {
-    log("From " + from)
-    log("Candidate " + candidate)
-
+async function addIceCandidate(from, candidate) {    
     if (!from || !candidate) {
         return
     }
-
-    log("Got ICE candidate from " + from)
-
+    
+    
     if (!peers[from]) {
-        log("Peer connection not found")
+        if (!candidateQueue[from]) {
+            candidateQueue[from] = [];
+        }
+        candidateQueue[from].push(candidate);
+        log("Peer connection added to queue")
+        
+        return;
     }
+    
+    log("Got ICE candidate from " + from)
 
     const _candidate = new RTCIceCandidate(candidate)
     peers[from].addIceCandidate(_candidate).then(() => {
@@ -254,12 +265,12 @@ function connectWebsocket(token) {
     }
 
     ws.onclose = (event) => {
-        log("WebSocket connection closed")
-        disconnectWebsocket()
+        log(`WebSocket connection closed. Code: ${event.code}, reason: ${event.reason}`)
     }
 
     ws.onerror = (error) => {
-        log("Websocket error" + error.message)
+        log("Websocket error")
+        console.log("Websocker error: ", error)
     }
 
     currentToken = token
