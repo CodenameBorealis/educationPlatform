@@ -25,7 +25,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip uninstall channels daphne
+        pip uninstall --yes channels daphne
         python -m pip install channels["daphne"]
     - name: Run Tests
       run: |
