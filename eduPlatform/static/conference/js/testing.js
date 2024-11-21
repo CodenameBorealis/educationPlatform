@@ -57,7 +57,12 @@ function getMyUserId() {
 function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' }
+            { urls: 'stun:turn.demodeck.ru:3478' },
+            { 
+                urls: 'turn:turn.demodeck.ru:3478',
+                username: 'turnServerUser',
+                credential: '3nDHFUy034TdVF2fd7fgd8df32jfgs4sh5937290'
+            }
         ]
     }
 
@@ -250,7 +255,7 @@ function connectWebsocket(token) {
 
     ws.onclose = (event) => {
         log("WebSocket connection closed")
-        disconnect()
+        disconnectWebsocket()
     }
 
     ws.onerror = (error) => {

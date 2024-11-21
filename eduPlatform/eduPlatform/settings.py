@@ -27,11 +27,16 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('IS_PRODUCTION', 'FALSE') == "FALSE"
 
-ALLOWED_HOSTS = ["127.0.0.1", "https://demodeck.ru"]
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000", 
+CSRF_TRUSTED_ORIGINS = ["https://demodeck.ru", "https://www.demodeck.ru"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "demodeck.ru", "www.demodeck.ru", ".demodeck.ru" ,"31.31.203.209", "0.0.0.0"]
+CORS_ALLOWED_ORIGINS = [                                                                                                                                                
+    "http://127.0.0.1:8000"
+    "http://localhost:8000", 
     "https://demodeck.ru",
-]
+    "https://www.demodeck.ru"
+]                                                                                                                                                                       
+                                                                                                                                                                        
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Application definition
 
