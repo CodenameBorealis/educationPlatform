@@ -8,6 +8,7 @@ const host = window.location.host
 
 var candidateQueue = {};
 
+var userId
 var ws, localStream, currentToken
 var peers = {}
 
@@ -43,24 +44,23 @@ function handleMediaError(error) {
     document.location.reload()
 }
 
-function generateUserId() {
-    log("Generated local user id")
+async function getMyUserId() {
+    userInfo = await getHttpAsync("/user/get_userinfo")
+    json = await userInfo.json()
 
-    if (!localStorage.getItem('userId')) {
-        localStorage.setItem('userId', 'user-' + Math.random().toString(36).substring(2, 15));
+    if (!json || json["success"] == false) {
+        log("Failed to fetch user data")
+        return
     }
-    return localStorage.getItem('userId');
-}
 
-function getMyUserId() {
-    return localStorage.getItem('userId');
+    userId = json["data"]["user_id"]
 }
 
 function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { 
+            {
                 urls: 'turn:turn.demodeck.ru:3478',
                 username: 'turnServerAdmin',
                 credential: 'AYP04e23t6yusr223oui61aljfka7kwn3ez'
@@ -76,7 +76,7 @@ function createPeerConnection(remoteUserId) {
                 type: 'candidate',
                 to: remoteUserId,
                 candidate: event.candidate,
-                from: getMyUserId()
+                from: userId
             }))
             log("Sent ice candidate")
         }
@@ -92,7 +92,7 @@ function createPeerConnection(remoteUserId) {
         remoteVideo.srcObject = event.streams[0]
         remoteVideo.autoplay = true
         remoteVideo.id = `video-${remoteUserId}`
-        
+
         document.getElementById("videos").appendChild(remoteVideo)
     }
 
@@ -127,7 +127,7 @@ function disconnectUser(userId) {
         peers[userId].close();
         delete peers[userId];
     }
-    
+
     const videoStream = document.getElementById(`video-${userId}`)
     if (videoStream) {
         videoStream.remove()
@@ -147,7 +147,7 @@ async function handleOffer(offer, remoteUserId) {
     ws.send(JSON.stringify({
         type: 'answer',
         to: remoteUserId,
-        from: getMyUserId(),
+        from: userId,
         answer
     }))
 
@@ -165,7 +165,7 @@ async function createOffer(remoteUserId) {
     ws.send(JSON.stringify({
         type: 'offer',
         to: remoteUserId,
-        from: getMyUserId(),
+        from: userId,
         offer
     }));
 
@@ -185,29 +185,30 @@ async function start() {
         localVideo.muted = true
         localVideo.srcObject = localStream;
 
-        ws.send(JSON.stringify({ type: 'join', userId: generateUserId() }));
+        console.log(userId)
+
+        ws.send(JSON.stringify({ type: 'join', userId: userId }));
         log("Started WebRTC")
     } catch (error) {
         handleMediaError(error)
     }
 }
 
-async function addIceCandidate(from, candidate) {    
+async function addIceCandidate(from, candidate) {
     if (!from || !candidate) {
         return
     }
-    
-    
+
     if (!peers[from]) {
         if (!candidateQueue[from]) {
             candidateQueue[from] = [];
         }
         candidateQueue[from].push(candidate);
         log("Peer connection added to queue")
-        
+
         return;
     }
-    
+
     log("Got ICE candidate from " + from)
 
     const _candidate = new RTCIceCandidate(candidate)
@@ -225,29 +226,31 @@ async function onWebSocketRecieve(event) {
     const { type, from, to, offer, answer, candidate } = data
 
     if (to) {
-        if (to === getMyUserId()) {
+        if (to === userId) {
             log("Got personal WebSocket response - " + type)
         }
     } else {
         log("Got global WebSocket response - " + type)
     }
 
-    if (type === "new-participant" && from !== getMyUserId()) {
+    if (type === "new-participant" && from !== userId) {
         await createOffer(from)
-    } else if (type === "offer" && to === getMyUserId()) {
+    } else if (type === "offer" && to === userId) {
         await handleOffer(offer, from)
-    } else if (type === "answer" && to === getMyUserId()) {
+    } else if (type === "answer" && to === userId) {
         if (peers[from].connected) {
             return
         }
 
         await peers[from].setRemoteDescription(new RTCSessionDescription(answer))
-    } else if (type === "candidate" && to === getMyUserId()) {
+    } else if (type === "candidate" && to === userId) {
         await addIceCandidate(from, candidate)
     }
 }
 
-function connectWebsocket(token) {
+async function connectWebsocket(token) {
+    await getMyUserId()
+
     ws = new WebSocket(`${protocol}//${host}/ws/signaling/${token}/`)
 
     ws.onopen = () => {
@@ -297,7 +300,6 @@ function sendWebsocketData(data) {
 
     ws.send(data)
 }
-
 
 disconnectBtn.disabled = true
 
