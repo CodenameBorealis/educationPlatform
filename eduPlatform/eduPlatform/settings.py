@@ -16,7 +16,11 @@ from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
 load_dotenv(os.path.join(BASE_DIR, '.env.production'))
+IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE')
+
+UPLOAD_DIR = os.getenv("UPLOAD_PATH", BASE_DIR / "uploads")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -30,7 +34,7 @@ DEBUG = os.getenv('IS_PRODUCTION', 'FALSE') == "FALSE"
 CSRF_TRUSTED_ORIGINS = ["https://demodeck.ru", "https://www.demodeck.ru"]
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "demodeck.ru", "www.demodeck.ru", ".demodeck.ru" ,"31.31.203.209", "0.0.0.0"]
 CORS_ALLOWED_ORIGINS = [                                                                                                                                                
-    "http://127.0.0.1:8000"
+    "http://127.0.0.1:8000",
     "http://localhost:8000", 
     "https://demodeck.ru",
     "https://www.demodeck.ru"
@@ -101,7 +105,6 @@ ASGI_APPLICATION = 'eduPlatform.asgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE')
 DATABASES = {
     'default': {
         # Production
