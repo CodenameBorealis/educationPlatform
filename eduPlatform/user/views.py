@@ -17,8 +17,8 @@ from json import loads
 
 # A class responsible for giving out the profile pictures of users
 class GetProfilePicture(APIView):
-    pics_path = settings.BASE_DIR / "uploads/profile_pictures"
-    default = pics_path / "Pfp_default.png"
+    pics_path = settings.UPLOAD_DIR / "profile_pictures"
+    default = settings.STATIC_ROOT / "user/Pfp_default.png"
 
     def get(self, request, *args, **kwargs):
         # Only allow authenticated users to access the api
@@ -99,7 +99,6 @@ class GetUserInfo(APIView):
                 "username": user.username,
                 "email": user.email,
                 "description": user.description,
-                "date_joined": str(user.date_joined),
                 "is_staff": user.is_staff,
                 "is_superuser": user.is_superuser
             }
@@ -213,7 +212,7 @@ class ChangeUsername(APIView):
 
 # Class responsible for changing user's profile picture
 class ChangeProfilePicture(APIView):
-    upload_path = settings.BASE_DIR / "uploads/profile_pictures"
+    upload_path = settings.UPLOAD_DIR / "profile_pictures"
     
     def post(self, request, *args, **kwargs):
         if not request.user or not request.user.is_authenticated:

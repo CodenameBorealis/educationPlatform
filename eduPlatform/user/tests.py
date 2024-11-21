@@ -307,7 +307,7 @@ class UserTestProfileChangeRequest(TestCase):
         self.client = Client()
         self.client.login(username='test', password='test')
         
-        self.upload_path = settings.BASE_DIR / "uploads/profile_pictures"
+        self.upload_path = settings.UPLOAD_DIR / "profile_pictures"
     
     def tearDown(self):
         for file in self.upload_path.glob('*'):
@@ -315,7 +315,7 @@ class UserTestProfileChangeRequest(TestCase):
                 file.unlink()
 
     def generate_test_image(self):
-        with open(settings.BASE_DIR / "uploads/profile_pictures/Pfp_default.png", "rb") as img:
+        with open(settings.STATIC_ROOT / "user/Pfp_default.png", "rb") as img:
             return SimpleUploadedFile(
                 "Pfp_default.png",
                 img.read(),
