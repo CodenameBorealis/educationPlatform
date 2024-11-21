@@ -22,6 +22,10 @@ IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE')
 
 UPLOAD_DIR = os.getenv("UPLOAD_PATH", BASE_DIR / "uploads")
 
+if not os.path.exists(UPLOAD_DIR):
+    os.mkdir(BASE_DIR / "uploads")
+    os.mkdir(BASE_DIR / "uploads/profile_pictures")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
