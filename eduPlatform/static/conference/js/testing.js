@@ -1,6 +1,12 @@
 const connectBtn = document.getElementById("connect")
 const disconnectBtn = document.getElementById("disconnect")
 
+const connectAudio = document.getElementById("connect-audio")
+const connectMic = document.getElementById("connect-mic")
+
+const toggleMic = document.getElementById("toggle-mic")
+const toggleCam = document.getElementById("toggle-cam")
+
 const tokenInput = document.getElementById("room-token")
 
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws'
@@ -12,9 +18,20 @@ var userId
 var ws, localStream, currentToken
 var peers = {}
 
-function log(message) {
+var WebRTCStarted = false
+var isListener = false
+
+function log(message, type) {
     const _reply = document.createElement('span');
     _reply.textContent = message;
+
+    if (type == "warn") {
+        _reply.style.color = "rgb(255, 255, 0)"
+        _reply.style.fontWeight = "20px"
+    } else if (type == "error") {
+        _reply.style.color = "rgb(255, 0, 0)"
+        _reply.style.fontWeight = "20px"
+    }
 
     const lineBreak = document.createElement('br');
     reply.appendChild(_reply);
@@ -56,6 +73,38 @@ async function getMyUserId() {
     userId = json["data"]["user_id"]
 }
 
+function addVideo(id, src) {
+    const remoteVideo = document.createElement('video')
+
+    remoteVideo.srcObject = src
+    remoteVideo.autoplay = true
+    remoteVideo.playsInline = true
+    remoteVideo.id = `video-${id}`
+
+    document.getElementById("videos").appendChild(remoteVideo)
+}
+
+function addAudio(id, src) {
+    const remoteAudio = document.createElement('audio')
+
+    remoteAudio.srcObject = src
+    remoteAudio.autoplay = true
+    remoteAudio.id = `audio-${id}`
+
+    document.getElementById("mics").appendChild(remoteAudio)
+}
+
+function removeSteam(type, id) {
+    const stream = document.getElementById(`${type}-${id}`)
+
+    if (!stream) {
+        return
+    }
+    
+    stream.remove()
+    stream.srcObject = null
+}
+
 function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
@@ -76,38 +125,38 @@ function createPeerConnection(remoteUserId) {
                 type: 'candidate',
                 to: remoteUserId,
                 candidate: event.candidate,
-                from: userId
             }))
             log("Sent ice candidate")
         }
     }
 
     peerConnection.ontrack = (event) => {
-        if (event.track.kind != "video") {
-            return
+        if (event.track.kind === "video") {
+            addVideo(remoteUserId, event.streams[0])
+        } else if (event.track.kind === "audio") {
+            addAudio(remoteUserId, event.streams[0])
         }
-
-        const remoteVideo = document.createElement('video')
-
-        remoteVideo.srcObject = event.streams[0]
-        remoteVideo.autoplay = true
-        remoteVideo.id = `video-${remoteUserId}`
-
-        document.getElementById("videos").appendChild(remoteVideo)
     }
 
     if (candidateQueue[remoteUserId]) {
         candidateQueue[remoteUserId].forEach(candidate => addIceCandidate(remoteUserId, candidate));
         delete candidateQueue[remoteUserId];
     }
-    localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream))
+
+    if (!isListener) {
+        localStream.getTracks().forEach((track) => peerConnection.addTrack(track, localStream))
+    } else {
+        peerConnection.addTrack = function (...args) {
+            throw new Error("Track addition is not allowed in listener mode.")
+        }
+    }
 
     peers[remoteUserId] = peerConnection
 
     peerConnection.oniceconnectionstatechange = () => {
-        log('ICE Connection State: ' + peerConnection.iceConnectionState);
-
         const state = peerConnection.iceConnectionState;
+        log(`User-${remoteUserId} - ICE Connection State: ${state}`, state === "failed" || state === "disconnected" ? "error" : "");
+
         if (state === 'disconnected' || state === 'failed' || state === 'closed') {
             disconnectUser(remoteUserId)
         } else if (state === 'connected') {
@@ -128,11 +177,10 @@ function disconnectUser(userId) {
         delete peers[userId];
     }
 
-    const videoStream = document.getElementById(`video-${userId}`)
-    if (videoStream) {
-        videoStream.remove()
-        videoStream.srcObject = null
-    }
+    removeSteam("audio", userId)
+    removeSteam("video", userId)
+
+    log(`Closed peer connection with user-${userId}`)
 }
 
 async function handleOffer(offer, remoteUserId) {
@@ -147,7 +195,6 @@ async function handleOffer(offer, remoteUserId) {
     ws.send(JSON.stringify({
         type: 'answer',
         to: remoteUserId,
-        from: userId,
         answer
     }))
 
@@ -159,39 +206,16 @@ async function createOffer(remoteUserId) {
         createPeerConnection(remoteUserId);
     }
 
-    const offer = await peers[remoteUserId].createOffer()
+    const offer = await peers[remoteUserId].createOffer(isListener ? { offerToReceiveVideo: true, offerToReceiveAudio: true } : {})
     await peers[remoteUserId].setLocalDescription(offer)
 
     ws.send(JSON.stringify({
         type: 'offer',
         to: remoteUserId,
-        from: userId,
         offer
     }));
 
     log("Sent offer")
-}
-
-async function start() {
-    if (!ws) {
-        alert("Cannot start WebRTC, websocket is not connected.")
-        return
-    }
-
-    try {
-        const localVideo = document.getElementById("localvideo")
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        localVideo.autoplay = true
-        localVideo.muted = true
-        localVideo.srcObject = localStream;
-
-        console.log(userId)
-
-        ws.send(JSON.stringify({ type: 'join', userId: userId }));
-        log("Started WebRTC")
-    } catch (error) {
-        handleMediaError(error)
-    }
 }
 
 async function addIceCandidate(from, candidate) {
@@ -221,7 +245,33 @@ async function addIceCandidate(from, candidate) {
 
 }
 
+async function start(is_listener = false) {
+    if (!ws) {
+        alert("Cannot start WebRTC, websocket is not connected.")
+        return
+    }
+
+    isListener = is_listener
+
+    try {
+        if (!is_listener) {
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        }
+
+        ws.send(JSON.stringify({ type: 'join' }));
+        
+        WebRTCStarted = true
+        log("Started WebRTC")
+    } catch (error) {
+        handleMediaError(error)
+    }
+}
+
 async function onWebSocketRecieve(event) {
+    if (!WebRTCStarted) {
+        return
+    }
+
     const data = JSON.parse(event.data)
     const { type, from, to, offer, answer, candidate } = data
 
@@ -234,11 +284,18 @@ async function onWebSocketRecieve(event) {
     }
 
     if (type === "new-participant" && from !== userId) {
+        if (peers[from]) {
+            disconnectUser(from)
+        }
+
         await createOffer(from)
     } else if (type === "offer" && to === userId) {
         await handleOffer(offer, from)
     } else if (type === "answer" && to === userId) {
+        console.log(answer)
+
         if (peers[from].connected) {
+            log("Answer ignored because is not connected.")
             return
         }
 
@@ -248,15 +305,37 @@ async function onWebSocketRecieve(event) {
     }
 }
 
+function onWebsocketOpen(event) {
+    if (!ws) {
+        return
+    }
+
+    log("Websocket connection established")
+    
+    connectAudio.disabled = false
+    connectMic.disabled = false
+
+    connectAudio.addEventListener("click", () => {
+        connectAudio.disabled = true
+        connectMic.disabled = true
+
+        start(true)
+    })
+
+    connectMic.addEventListener("click", () => {
+        connectAudio.disabled = true
+        connectMic.disabled = true
+
+        start()
+    })
+}
+
 async function connectWebsocket(token) {
     await getMyUserId()
 
     ws = new WebSocket(`${protocol}//${host}/ws/signaling/${token}/`)
 
-    ws.onopen = () => {
-        log("WebSocket connection established!")
-        start()
-    }
+    ws.onopen = onWebsocketOpen
 
     ws.onmessage = (event) => {
         try {
@@ -268,11 +347,11 @@ async function connectWebsocket(token) {
     }
 
     ws.onclose = (event) => {
-        log(`WebSocket connection closed. Code: ${event.code}, reason: ${event.reason}`)
+        log(`WebSocket connection closed. Code: ${event.code}, reason: ${event.code != 1000 ? event.reason || "No reason given." : "Client initiated disconnect."}`, event.code != 1000 ? "warn" : "")
     }
 
     ws.onerror = (error) => {
-        log("Websocket error")
+        log("Websocket error (Check console for more)", "error")
         console.log("Websocker error: ", error)
     }
 
@@ -289,17 +368,20 @@ function disconnectWebsocket() {
 
     ws.close()
     ws = null
-
-    document.location.reload()
-}
-
-function sendWebsocketData(data) {
-    if (!data || !ws) {
-        return
+    
+    for (const [id, peer] of Object.entries(peers)) {
+        disconnectUser(id)
     }
 
-    ws.send(data)
+    disconnectBtn.disabled = true
+    log("Disconnected")
 }
+
+connectAudio.disabled = true
+connectMic.disabled = true
+
+toggleCam.disabled = true
+toggleMic.disabled = true
 
 disconnectBtn.disabled = true
 

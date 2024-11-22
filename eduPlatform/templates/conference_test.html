@@ -7,15 +7,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conference test</title>
+
+    <style>
+        span {
+            color: white
+        }
+
+        body {
+            background-color: rgb(10, 10, 10);
+        }
+    </style>
 </head>
 
 <body>
     <input type="text" id="room-token">
+    
     <button id="connect">Connect</button>
-    <button id="disconnect">Disconnect</button>
+    <button id="disconnect" style="margin-right: 20px;">Disconnect</button>
+
+    <button id="connect-audio">Connect with audio</button>
+    <button id="connect-mic">Connect with microphone</button>
+
     <br>
-    <video id="localvideo"></video>
-    <div id="videos"></div>
+
+    <button id="toggle-mic">Mute microphone</button>
+    <button id="toggle-cam">Turn on camera</button>
+
+    <br>
+    
+    <div id="videos">
+        <video id="localvideo"></video>
+    </div>
+
+    <div id="mics">
+    </div>
+
     <span id="reply"></span>
 </body>
 
