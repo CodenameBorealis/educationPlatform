@@ -52,6 +52,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     
     async def receive(self, text_data):
         data = json.loads(text_data)
+        data["from"] = self.scope["user"].id
         
         if data.get("type") == "join":      
             await self.channel_layer.group_send(
@@ -60,7 +61,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
                     'type': 'signaling_message',
                     'message': {
                         'type': 'new-participant',
-                        'from': data['userId']
+                        'from': data['from']
                     }
                 }
             )
@@ -81,4 +82,5 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     
     async def signaling_message(self, event):
         message = event.get("message")
+        
         await self.send(text_data=json.dumps(message))
