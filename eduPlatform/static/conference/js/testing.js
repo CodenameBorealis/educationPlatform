@@ -324,8 +324,6 @@ function createPeerConnection(remoteUserId) {
     }
 
     peerConnection.ontrack = (event) => {
-        log(event.track.kind)
-
         if (event.track.kind === "video") {
             addVideo(remoteUserId, event.streams[0])
         } else if (event.track.kind === "audio") {

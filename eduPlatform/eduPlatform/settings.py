@@ -12,15 +12,13 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(os.path.join(BASE_DIR, '.env.production'))
 IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE')
 
-UPLOAD_DIR = os.getenv("UPLOAD_PATH", BASE_DIR / "uploads")
+UPLOAD_DIR = Path(os.getenv("UPLOAD_PATH", BASE_DIR / "uploads"))
 
 if not os.path.exists(UPLOAD_DIR):
     os.mkdir(BASE_DIR / "uploads")
