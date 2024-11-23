@@ -12,14 +12,19 @@ const tokenInput = document.getElementById("room-token")
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws'
 const host = window.location.host
 
-var candidateQueue = {};
+var candidateQueue = {}
 
 var userId
 var ws, localStream, currentToken
+var videoCamSender
+
 var peers = {}
 
 var WebRTCStarted = false
 var isListener = false
+
+var microphoneEnabled = false
+var cameraEnabled = false
 
 function log(message, type) {
     const _reply = document.createElement('span');
@@ -27,10 +32,10 @@ function log(message, type) {
 
     if (type == "warn") {
         _reply.style.color = "rgb(255, 255, 0)"
-        _reply.style.fontWeight = "20px"
+        _reply.style.fontWeight = "bold"
     } else if (type == "error") {
         _reply.style.color = "rgb(255, 0, 0)"
-        _reply.style.fontWeight = "20px"
+        _reply.style.fontWeight = "bold"
     }
 
     const lineBreak = document.createElement('br');
@@ -56,9 +61,6 @@ function handleMediaError(error) {
             console.error('Error accessing media devices:', error);
             alert('An unknown error occurred while accessing media devices.');
     }
-
-    alert("Please make sure that you gave access to the microphone and camera in order to access this page.")
-    document.location.reload()
 }
 
 async function getMyUserId() {
@@ -74,17 +76,30 @@ async function getMyUserId() {
 }
 
 function addVideo(id, src) {
+    const existing = document.getElementById(`video-${id}`)
+    if (existing) {
+        existing.remove()
+        existing.srcObject = null
+    }
+
     const remoteVideo = document.createElement('video')
 
     remoteVideo.srcObject = src
     remoteVideo.autoplay = true
     remoteVideo.playsInline = true
+    remoteVideo.muted = true
     remoteVideo.id = `video-${id}`
 
     document.getElementById("videos").appendChild(remoteVideo)
 }
 
 function addAudio(id, src) {
+    const existing = document.getElementById(`audio-${id}`)
+    if (existing) {
+        existing.remove()
+        existing.srcObject = null
+    }
+
     const remoteAudio = document.createElement('audio')
 
     remoteAudio.srcObject = src
@@ -94,15 +109,193 @@ function addAudio(id, src) {
     document.getElementById("mics").appendChild(remoteAudio)
 }
 
-function removeSteam(type, id) {
+function removeStream(type, id) {
     const stream = document.getElementById(`${type}-${id}`)
 
     if (!stream) {
         return
     }
-    
+
     stream.remove()
     stream.srcObject = null
+}
+
+function disconnectUser(userId) {
+    if (peers[userId]) {
+        peers[userId].close();
+        delete peers[userId];
+    }
+
+    removeStream("audio", userId)
+    removeStream("video", userId)
+
+    log(`Closed peer connection with user-${userId}`)
+}
+
+async function handleOffer(offer, remoteUserId) {
+    if (!peers[remoteUserId]) {
+        createPeerConnection(remoteUserId)
+    }
+
+    const peer = peers[remoteUserId]
+
+    await peer.setRemoteDescription(new RTCSessionDescription(offer))
+    const answer = await peer.createAnswer()
+    await peer.setLocalDescription(answer)
+
+    ws.send(JSON.stringify({
+        type: 'answer',
+        to: Number(remoteUserId),
+        answer
+    }))
+
+    log("Handled offer from " + remoteUserId + " and sent an answer")
+}
+
+async function createOffer(remoteUserId) {
+    if (!peers[remoteUserId]) {
+        createPeerConnection(remoteUserId);
+    }
+
+    const offer = await peers[remoteUserId].createOffer(isListener ? { offerToReceiveVideo: true, offerToReceiveAudio: true } : {})
+    await peers[remoteUserId].setLocalDescription(offer)
+
+    ws.send(JSON.stringify({
+        type: 'offer',
+        to: Number(remoteUserId),
+        offer
+    }));
+
+    log("Sent offer")
+}
+
+async function addIceCandidate(from, candidate) {
+    if (!from || !candidate) {
+        return
+    }
+
+    if (!peers[from]) {
+        if (!candidateQueue[from]) {
+            candidateQueue[from] = [];
+        }
+        candidateQueue[from].push(candidate);
+        log("Peer connection added to queue")
+
+        return;
+    }
+
+    log("Got ICE candidate from " + from)
+
+    const _candidate = new RTCIceCandidate(candidate)
+    peers[from].addIceCandidate(_candidate).then(() => {
+        log("ICE candidate added")
+    }).catch((error) => {
+        alert(error)
+        log("Error adding ICE candidate", "error")
+    })
+
+}
+
+function toggleMicrophone(status) {
+    const stream = localStream.getTracks().find(track => track.kind == 'audio')
+
+    stream.enabled = status
+    microphoneEnabled = status
+
+    if (status) {
+        toggleMic.innerHTML = "Mute"
+    } else {
+        toggleMic.innerHTML = "Unmute"
+    }
+
+    log("Microphone: " + (status ? "On" : "Off"))
+}
+
+async function turnCameraOff() {
+    if (!cameraEnabled) {
+        return
+    }
+
+    toggleCam.disabled = true
+    setTimeout(() => {
+        toggleCam.disabled = false
+    }, 2500)
+
+    const videoTrack = localStream.getVideoTracks()[0]
+    if (!videoTrack) {
+        return
+    }
+
+    removeStream("video", userId)
+
+    localStream.removeTrack(videoTrack)
+    videoTrack.stop()
+
+    for (const [id, peer] of Object.entries(peers)) {
+        if (!peer.videoCamSender) {
+            continue
+        }
+
+        peer.removeTrack(peer.videoCamSender)
+        peer.videoCamSender = null
+
+        await createOffer(id)
+
+        ws.send(JSON.stringify({
+            type: "webcam_stop",
+            to: id
+        }))
+    }
+
+    cameraEnabled = false
+}
+
+async function turnCameraOn() {
+    if (cameraEnabled) {
+        return
+    }
+
+    try {
+        toggleCam.disabled = true
+        setTimeout(() => {
+            toggleCam.disabled = false
+        }, 2500)
+
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+        const videoTrack = stream.getVideoTracks()[0]
+
+        log("Using webcam: " + videoTrack.label)
+
+        const videoTrackExists = localStream.getVideoTracks().find(
+            (track) => track.label === videoTrack.label
+        )
+
+        if (videoTrackExists) {
+            log("Video track already exists.", "warn")
+            return
+        }
+
+        localStream.addTrack(videoTrack)
+
+        videoTrack.addEventListener("ended", () => {
+            log("The video feed has ended unexpectedly.", "error")
+            turnCameraOff()
+        })
+
+        const videoStream = new MediaStream([videoTrack])
+        addVideo(userId, videoStream)
+
+        for (const [id, peer] of Object.entries(peers)) {
+            const sender = peer.addTrack(videoTrack, localStream)
+            peer.videoCamSender = sender
+
+            await createOffer(id)
+        }
+
+        cameraEnabled = true
+    } catch (error) {
+        handleMediaError(error)
+    }
 }
 
 function createPeerConnection(remoteUserId) {
@@ -131,6 +324,8 @@ function createPeerConnection(remoteUserId) {
     }
 
     peerConnection.ontrack = (event) => {
+        log(event.track.kind)
+
         if (event.track.kind === "video") {
             addVideo(remoteUserId, event.streams[0])
         } else if (event.track.kind === "audio") {
@@ -168,81 +363,11 @@ function createPeerConnection(remoteUserId) {
         log('Connection State: ' + peerConnection.connectionState);
     };
 
+    if (!isListener) {
+        toggleMicrophone(false)
+    }
+
     log("Made peer connection")
-}
-
-function disconnectUser(userId) {
-    if (peers[userId]) {
-        peers[userId].close();
-        delete peers[userId];
-    }
-
-    removeSteam("audio", userId)
-    removeSteam("video", userId)
-
-    log(`Closed peer connection with user-${userId}`)
-}
-
-async function handleOffer(offer, remoteUserId) {
-    if (!peers[remoteUserId]) {
-        createPeerConnection(remoteUserId)
-    }
-
-    await peers[remoteUserId].setRemoteDescription(new RTCSessionDescription(offer))
-    const answer = await peers[remoteUserId].createAnswer()
-    await peers[remoteUserId].setLocalDescription(answer)
-
-    ws.send(JSON.stringify({
-        type: 'answer',
-        to: remoteUserId,
-        answer
-    }))
-
-    log("Handled offer from " + remoteUserId + " and sent an answer")
-}
-
-async function createOffer(remoteUserId) {
-    if (!peers[remoteUserId]) {
-        createPeerConnection(remoteUserId);
-    }
-
-    const offer = await peers[remoteUserId].createOffer(isListener ? { offerToReceiveVideo: true, offerToReceiveAudio: true } : {})
-    await peers[remoteUserId].setLocalDescription(offer)
-
-    ws.send(JSON.stringify({
-        type: 'offer',
-        to: remoteUserId,
-        offer
-    }));
-
-    log("Sent offer")
-}
-
-async function addIceCandidate(from, candidate) {
-    if (!from || !candidate) {
-        return
-    }
-
-    if (!peers[from]) {
-        if (!candidateQueue[from]) {
-            candidateQueue[from] = [];
-        }
-        candidateQueue[from].push(candidate);
-        log("Peer connection added to queue")
-
-        return;
-    }
-
-    log("Got ICE candidate from " + from)
-
-    const _candidate = new RTCIceCandidate(candidate)
-    peers[from].addIceCandidate(_candidate).then(() => {
-        log("ICE candidate added")
-    }).catch((error) => {
-        alert(error)
-        log("Error adding ICE candidate")
-    })
-
 }
 
 async function start(is_listener = false) {
@@ -256,10 +381,13 @@ async function start(is_listener = false) {
     try {
         if (!is_listener) {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        } else {
+            toggleCam.disabled = true
+            toggleMic.disabled = true
         }
 
         ws.send(JSON.stringify({ type: 'join' }));
-        
+
         WebRTCStarted = true
         log("Started WebRTC")
     } catch (error) {
@@ -275,6 +403,8 @@ async function onWebSocketRecieve(event) {
     const data = JSON.parse(event.data)
     const { type, from, to, offer, answer, candidate } = data
 
+    console.log(data)
+
     if (to) {
         if (to === userId) {
             log("Got personal WebSocket response - " + type)
@@ -283,25 +413,54 @@ async function onWebSocketRecieve(event) {
         log("Got global WebSocket response - " + type)
     }
 
-    if (type === "new-participant" && from !== userId) {
+    if (type == "new-participant" && from != userId) {
         if (peers[from]) {
             disconnectUser(from)
         }
 
         await createOffer(from)
-    } else if (type === "offer" && to === userId) {
-        await handleOffer(offer, from)
-    } else if (type === "answer" && to === userId) {
-        console.log(answer)
+    }
+    
+    if (!to == userId) {
+        return
+    }
 
-        if (peers[from].connected) {
-            log("Answer ignored because is not connected.")
+    if (type == "offer") {
+        await handleOffer(offer, from)
+    } else if (type == "answer") {
+        await peers[from].setRemoteDescription(new RTCSessionDescription(answer))
+    } else if (type == "candidate") {
+        await addIceCandidate(from, candidate)
+    } else if (type == "webcam_stop") {
+        removeStream("video", from)
+    }
+}
+
+async function bindPermissionListeners() {
+    const videoPermissionStatus = await navigator.permissions.query({ video: true })
+    const micPermissionStatus = await navigator.permissions.query({ audio: true })
+
+
+    videoPermissionStatus.onchange = () => {
+        if (isListener) {
             return
         }
 
-        await peers[from].setRemoteDescription(new RTCSessionDescription(answer))
-    } else if (type === "candidate" && to === userId) {
-        await addIceCandidate(from, candidate)
+        if (videoPermissionStatus.state !== "granted" && cameraEnabled) {
+            turnCameraOff()
+            log("Camera permissions have been revoked.", "warn")
+        }
+    }
+
+    micPermissionStatus.onchange = () => {
+        if (isListener) {
+            return
+        }
+
+        if (micPermissionStatus.state !== "granted" && WebRTCStarted) {
+            disconnectWebsocket()
+            log("Microphone access denied, please ensure microphone access are granted to continue.", "error")
+        }
     }
 }
 
@@ -311,7 +470,7 @@ function onWebsocketOpen(event) {
     }
 
     log("Websocket connection established")
-    
+
     connectAudio.disabled = false
     connectMic.disabled = false
 
@@ -368,10 +527,12 @@ function disconnectWebsocket() {
 
     ws.close()
     ws = null
-    
+
     for (const [id, peer] of Object.entries(peers)) {
         disconnectUser(id)
     }
+
+    removeStream("video", userId)
 
     disconnectBtn.disabled = true
     log("Disconnected")
@@ -380,10 +541,8 @@ function disconnectWebsocket() {
 connectAudio.disabled = true
 connectMic.disabled = true
 
-toggleCam.disabled = true
-toggleMic.disabled = true
-
 disconnectBtn.disabled = true
+
 
 connectBtn.addEventListener("click", () => {
     if (!tokenInput.value || ws) {
@@ -399,4 +558,26 @@ disconnectBtn.addEventListener("click", () => {
     }
 
     disconnectWebsocket()
+})
+
+toggleMic.addEventListener("click", () => {
+    if (!WebRTCStarted || isListener) {
+        return
+    }
+
+    toggleMicrophone(!microphoneEnabled)
+})
+
+toggleCam.addEventListener("click", () => {
+    if (!WebRTCStarted || isListener) {
+        return
+    }
+
+    if (!cameraEnabled) {
+        turnCameraOn()
+        toggleCam.innerHTML = "Turn camera off"
+    } else {
+        turnCameraOff()
+        toggleCam.innerHTML = "Turn camera on"
+    }
 })
