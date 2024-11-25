@@ -1,12 +1,13 @@
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
+
 from channels.testing import WebsocketCommunicator
 from channels.auth import AuthMiddlewareStack
 from channels.db import database_sync_to_async as dsa
 from channels.layers import get_channel_layer
 
-from .consumers import SignalingConsumer
 from eduPlatform.asgi import application
+from .consumers import SignalingConsumer
 from .models import Conference
 
 class SignalingConsumerTest(TestCase):
@@ -95,3 +96,50 @@ class SignalingConsumerTest(TestCase):
         }, "Got invalid JSON response.")
         
         await self.tearDown()
+
+class MessageHistoryTest(TestCase):
+    def setUp(self):
+        self.mainURL = "/conference/api/get-message-history/"
+        
+        User = get_user_model()
+        self.user = User.objects.create_testuser()
+        
+        self.client = Client()
+        
+        logged_in = self.client.login(username="test", password="test")
+        self.assertTrue(logged_in, "Failed to log into testing account.")
+        
+        self.conference = Conference.objects.create(host=self.user)
+        self.conference.save()
+    
+    def test_unauthorized(self):
+        self.client.logout()
+        request = self.client.get(f"{self.mainURL}?token=something")
+        
+        self.assertIsNotNone(request.headers, "Got an empty response.")
+        self.assertEqual(request.status_code, 403, "You shouldn't be able to access this API unauthorized.")
+    
+    def test_request(self):
+        request = self.client.get(f"{self.mainURL}?token={self.conference.token}")
+        
+        self.assertIsNotNone(request.headers, "Got an empty response.")
+        self.assertEqual(request.status_code, 200, "Got an invalid status code.")
+        
+        json = request.json()
+        
+        self.assertIsNotNone(json, "Got an empty JSON response.")
+        
+        self.assertTrue(json.get("success"), "JSON success is False.")
+        self.assertIsNotNone(json.get("history"), "Missing history field.")
+        
+    def test_request_invalid_token(self):
+        request = self.client.get(f"{self.mainURL}?token=some-invalid-token")
+        
+        self.assertIsNotNone(request.headers, "Got an empty response.")
+        self.assertEqual(request.status_code, 400, "Invalid status code given.")
+        
+    def test_request_no_token(self):
+        request = self.client.get(f"{self.mainURL}")
+        
+        self.assertIsNotNone(request.headers, "Got an empty response.")
+        self.assertEqual(request.status_code, 400, "Invalid status code given.")

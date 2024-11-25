@@ -1,6 +1,9 @@
 import json
+
+from datetime import datetime
 from channels.db import database_sync_to_async as dsa
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.core.cache import cache
 
 class SignalingConsumer(AsyncWebsocketConsumer):
     def conferenceExists(self, conference_token):
@@ -15,6 +18,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         
         self.room_token = self.scope['url_route']['kwargs']['token']
         self.room_group_name = f'signaling_{self.room_token}'
+        
+        self.message_history_cache_key = f"conference_message_cache_{self.room_token}"
+        if not cache.get(self.message_history_cache_key):
+            cache.set(self.message_history_cache_key, [], timeout=86400)
         
         if not self.scope['user'].is_authenticated:
             await self.close(code=4001)
@@ -67,6 +74,18 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             )
             
             return
+
+        if data.get("type") == "global-message":
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "chat_message",
+                    "username": self.scope.get("user").username,
+                    "message": data
+                }
+            )
+            
+            return
         
         room_group = (
             self.room_group_name
@@ -82,5 +101,24 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     
     async def signaling_message(self, event):
         message = event.get("message")
-        
         await self.send(text_data=json.dumps(message))
+        
+    async def chat_message(self, event):
+        message_data = event.get("message")
+        
+        now = datetime.now()
+        timestamp = now.isoformat()
+        
+        message_data["timestamp"] = timestamp
+        
+        message_history = cache.get(self.message_history_cache_key, [])
+        message_history.append({
+            'user_id': message_data.get("from"),
+            'username': event.get("username"),
+            'content': message_data.get("content"),
+            'timestamp': message_data.get("timestamp")
+        })
+        
+        cache.set(self.message_history_cache_key, message_history, timeout=86400)
+        
+        await self.send(text_data=json.dumps(message_data))
