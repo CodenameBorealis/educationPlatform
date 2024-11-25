@@ -60,6 +60,9 @@ class GetUserName(APIView):
         if not request.user or not request.user.is_authenticated:
             return HttpResponseForbidden("You must be logged in to access this page.")
 
+        if not request.GET.get("user_id"):
+            return HttpResponseBadRequest("No user_id given.")
+
         # If user_id query is given and not equal to -1 then use it, otherwise use original requester id
         user_id = int(request.GET.get("user_id") if int(request.GET.get("user_id")) != -1 else request.user.id)
         User = get_user_model()
