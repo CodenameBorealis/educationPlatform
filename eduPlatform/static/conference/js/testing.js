@@ -1,3 +1,6 @@
+const logFrame = document.getElementById("logs")
+const toggleLogBtn = document.getElementById("toggle-logs")
+
 const connectBtn = document.getElementById("connect")
 const disconnectBtn = document.getElementById("disconnect")
 
@@ -8,6 +11,9 @@ const toggleMic = document.getElementById("toggle-mic")
 const toggleCam = document.getElementById("toggle-cam")
 
 const tokenInput = document.getElementById("room-token")
+
+const messageSendButton = document.getElementById("send-btn")
+const messageInput = document.getElementById("chat-input")
 
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws'
 const host = window.location.host
@@ -26,21 +32,24 @@ var isListener = false
 var microphoneEnabled = false
 var cameraEnabled = false
 
-function log(message, type) {
-    const _reply = document.createElement('span');
-    _reply.textContent = message;
+var logsShown = false
+var chatShown = false
+
+function log(message, type = "LOG") {
+    const logEntry = document.createElement('span');
+    logEntry.textContent = `[${new Date().toLocaleTimeString()}] - [${type.toUpperCase()}]: ${message}`;
 
     if (type == "warn") {
-        _reply.style.color = "rgb(255, 255, 0)"
-        _reply.style.fontWeight = "bold"
+        logEntry.style.color = "rgb(255, 255, 0)"
+        logEntry.style.fontWeight = "bold"
     } else if (type == "error") {
-        _reply.style.color = "rgb(255, 0, 0)"
-        _reply.style.fontWeight = "bold"
+        logEntry.style.color = "rgb(255, 0, 0)"
+        logEntry.style.fontWeight = "bold"
     }
 
     const lineBreak = document.createElement('br');
-    reply.appendChild(_reply);
-    reply.appendChild(lineBreak);
+    logFrame.appendChild(logEntry);
+    logFrame.appendChild(lineBreak);
 }
 
 function handleMediaError(error) {
@@ -107,6 +116,36 @@ function addAudio(id, src) {
     remoteAudio.id = `audio-${id}`
 
     document.getElementById("mics").appendChild(remoteAudio)
+}
+
+function addChatMessage(username, message, timestamp, noSound=false) {
+    const now = timestamp ? new Date(timestamp) : new Date();
+    const timeText = now.toLocaleTimeString({
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    const chatBody = document.getElementById("chat-body")
+    const messageDiv = document.createElement('div')
+    messageDiv.classList.add("message", username == "?self" ? "sent" : "received")
+
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <span class="username">${username == "?self" ? "You" : username}</span>
+            <span class="message-meta">(${timeText})</span>
+        </div>
+        <p>${message}</p>
+    `
+
+    if (!noSound) {
+        const sound = document.getElementById(username == "?self" ? "send-sound" : "receive-sound")
+        sound.currentTime = 0
+        sound.play()
+    }
+
+    chatBody.appendChild(messageDiv)
+    log("Added message.")
 }
 
 function removeStream(type, id) {
@@ -194,6 +233,40 @@ async function addIceCandidate(from, candidate) {
         log("Error adding ICE candidate", "error")
     })
 
+}
+
+async function loadMessageHistory() {
+    try {
+        const history = await getHttpAsync(`/conference/api/get-message-history/?token=${currentToken}`)
+        const json = await history.json()
+
+        log("Loading message history.")
+
+        console.log(json)
+        
+        if (!json["success"]) {
+            log("Failed to load message history, JSON returned success=False", "error")
+            return
+        }
+
+        if (json["history"].length <= 0) {
+            log("Message history is empty.")
+            return
+        }
+
+        for (entry of json["history"]) {
+            var { user_id, username, content, timestamp } = entry
+
+            if (user_id == userId) {
+                username = "?self"
+            }
+
+            addChatMessage(username, content, timestamp, true)
+        }
+    } catch (error) {
+        log("Failed to load message history, please check console for more.", "error")
+        console.log(error)
+    }
 }
 
 function toggleMicrophone(status) {
@@ -298,6 +371,45 @@ async function turnCameraOn() {
     }
 }
 
+async function onMessageReceive(data) {
+    const { from, content, timestamp } = data
+
+    const usernameRequest = await getHttpAsync(`/user/get_username/?user_id=${from}`)
+    const json = await usernameRequest.json()
+
+    if (!json["success"]) {
+        log("Failed to get username for the received message!")
+        return
+    }
+
+    const username = json["data"]["username"]
+    addChatMessage(username, content, timestamp)
+}
+
+function sendChatMessage(content) {
+    if (!WebRTCStarted) {
+        return
+    }
+
+    const message = messageInput.value
+    if (!message || message === "") {
+        return
+    }
+
+    addChatMessage("?self", message)
+    messageInput.value = ""
+
+    try {
+        ws.send(JSON.stringify({
+            type: "global-message",
+            content: message
+        }))
+    } catch (error) {
+        log("Failed to send message through the websocket, check console for more info.", "error")
+        console.log(error)
+    }
+}
+
 function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
@@ -361,11 +473,16 @@ function createPeerConnection(remoteUserId) {
         log('Connection State: ' + peerConnection.connectionState);
     };
 
+    log("Made peer connection")
+}
+
+async function onStart() {
+    messageSendButton.disabled = false
+    loadMessageHistory()
+
     if (!isListener) {
         toggleMicrophone(false)
     }
-
-    log("Made peer connection")
 }
 
 async function start(is_listener = false) {
@@ -383,8 +500,10 @@ async function start(is_listener = false) {
             toggleCam.disabled = true
             toggleMic.disabled = true
         }
-
+        
         ws.send(JSON.stringify({ type: 'join' }));
+
+        onStart()
 
         WebRTCStarted = true
         log("Started WebRTC")
@@ -417,8 +536,14 @@ async function onWebSocketRecieve(event) {
         }
 
         await createOffer(from)
+    } else if (type == "global-message") {
+        if (from == userId) {
+            return
+        }
+
+        await onMessageReceive(data)
     }
-    
+
     if (!to == userId) {
         return
     }
@@ -541,6 +666,37 @@ connectMic.disabled = true
 
 disconnectBtn.disabled = true
 
+messageSendButton.disabled = true
+
+if (document.querySelector(".chat-container").style.display == "") {
+    const chat = document.querySelector(".chat-container")
+
+    const openBtn = document.getElementById("open-chat")
+    const closeBtn = document.getElementById("close-chat")
+
+    openBtn.style.display = "block"
+    closeBtn.style.display = "block"
+
+    openBtn.addEventListener("click", () => {
+        chat.style.display = "flex"
+    })
+
+    closeBtn.addEventListener("click", () => {
+        chat.style.display = "none"
+    })
+}
+
+toggleLogBtn.addEventListener("click", () => {
+    logsShown = !logsShown
+
+    if (logsShown) {
+        logFrame.style.display = "block"
+        toggleLogBtn.innerHTML = "Hide logs"
+    } else {
+        logFrame.style.display = "none"
+        toggleLogBtn.innerHTML = "Show logs"
+    }
+})
 
 connectBtn.addEventListener("click", () => {
     if (!tokenInput.value || ws) {
@@ -578,4 +734,8 @@ toggleCam.addEventListener("click", () => {
         turnCameraOff()
         toggleCam.innerHTML = "Turn camera on"
     }
+})
+
+messageSendButton.addEventListener("click", () => {
+    sendChatMessage()
 })

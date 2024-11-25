@@ -8,20 +8,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conference test</title>
 
-    <style>
-        span {
-            color: white
-        }
-
-        body {
-            background-color: rgb(10, 10, 10);
-        }
-    </style>
+    <link rel="stylesheet" href="{% static 'conference/css/test.css' %}">
 </head>
 
 <body>
     <input type="text" id="room-token">
-    
+
     <button id="connect">Connect</button>
     <button id="disconnect" style="margin-right: 20px;">Disconnect</button>
 
@@ -32,16 +24,34 @@
 
     <button id="toggle-mic">Unmute</button>
     <button id="toggle-cam">Turn camera on</button>
+    <button id="open-chat" style="display: none;">Open chat</button>
 
     <br>
-    
+
+    <audio src="{% static 'conference/audio/MessageSent.mp3' %}" id="send-sound" src,preload="auto"></audio>
+    <audio src="{% static 'conference/audio/MessageReceived.mp3' %}" id="receive-sound" src,preload="auto"></audio>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <span>Chat</span>
+            <button id="close-chat" style="display: none;">Close</button>
+        </div>
+        <div class="chat-body" id="chat-body">
+        </div>
+        <div class="chat-footer">
+            <input type="text" id="chat-input" class="form-control" placeholder="Type a message...">
+            <button id="send-btn" class="btn btn-primary">Send</button>
+        </div>
+    </div>
+
     <div id="videos">
     </div>
 
     <div id="mics">
     </div>
 
-    <span id="reply"></span>
+    <button id="toggle-logs">Show logs</button>
+    <span id="logs" style="display: none;"></span>
 </body>
 
 <script src="{% static 'conference/js/testing.js' %}"></script>
