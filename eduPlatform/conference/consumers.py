@@ -76,10 +76,25 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             return
 
         if data.get("type") == "global-message":
+            now = datetime.now()
+            timestamp = now.isoformat()
+            
+            data["timestamp"] = timestamp
+            
+            message_history = cache.get(self.message_history_cache_key, [])
+            message_history.append({
+                'user_id': data.get("from"),
+                'username': self.scope["user"].username,
+                'content': data.get("content"),
+                'timestamp': data.get("timestamp")
+            })
+            
+            cache.set(self.message_history_cache_key, message_history, timeout=86400)
+            
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
-                    "type": "chat_message",
+                    "type": "signaling_message",
                     "username": self.scope.get("user").username,
                     "message": data
                 }
@@ -102,23 +117,3 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     async def signaling_message(self, event):
         message = event.get("message")
         await self.send(text_data=json.dumps(message))
-        
-    async def chat_message(self, event):
-        message_data = event.get("message")
-        
-        now = datetime.now()
-        timestamp = now.isoformat()
-        
-        message_data["timestamp"] = timestamp
-        
-        message_history = cache.get(self.message_history_cache_key, [])
-        message_history.append({
-            'user_id': message_data.get("from"),
-            'username': event.get("username"),
-            'content': message_data.get("content"),
-            'timestamp': message_data.get("timestamp")
-        })
-        
-        cache.set(self.message_history_cache_key, message_history, timeout=86400)
-        
-        await self.send(text_data=json.dumps(message_data))
