@@ -15,13 +15,15 @@ const tokenInput = document.getElementById("room-token")
 const messageSendButton = document.getElementById("send-btn")
 const messageInput = document.getElementById("chat-input")
 
+const cameraSelection = document.getElementById("cameraSelect")
+
 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws'
 const host = window.location.host
 
 var candidateQueue = {}
 
 var userId
-var ws, localStream, currentToken
+var ws, localStream, currentToken, currentWebcamSelectedStream
 var videoCamSender
 
 var peers = {}
@@ -31,6 +33,7 @@ var isListener = false
 
 var microphoneEnabled = false
 var cameraEnabled = false
+var cameraSelectorOpen = false
 
 var logsShown = false
 var chatShown = false
@@ -98,6 +101,7 @@ function addVideo(id, src) {
     remoteVideo.playsInline = true
     remoteVideo.muted = true
     remoteVideo.id = `video-${id}`
+    remoteVideo.classList.add("video-frame")
 
     document.getElementById("videos").appendChild(remoteVideo)
 }
@@ -323,8 +327,8 @@ async function turnCameraOff() {
     cameraEnabled = false
 }
 
-async function turnCameraOn() {
-    if (cameraEnabled) {
+async function turnCameraOn(videoStream) {
+    if (cameraEnabled || !videoStream) {
         return
     }
 
@@ -334,11 +338,11 @@ async function turnCameraOn() {
             toggleCam.disabled = false
         }, 2500)
 
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true })
-        const videoTrack = stream.getVideoTracks()[0]
+        toggleCam.innerHTML = "Turn camera off"
 
+        const videoTrack = videoStream.getVideoTracks()[0]
         log("Using webcam: " + videoTrack.label)
-
+        
         const videoTrackExists = localStream.getVideoTracks().find(
             (track) => track.label === videoTrack.label
         )
@@ -355,7 +359,6 @@ async function turnCameraOn() {
             turnCameraOff()
         })
 
-        const videoStream = new MediaStream([videoTrack])
         addVideo(userId, videoStream)
 
         for (const [id, peer] of Object.entries(peers)) {
@@ -366,6 +369,73 @@ async function turnCameraOn() {
         }
 
         cameraEnabled = true
+    } catch (error) {
+        handleMediaError(error)
+    }
+}
+
+async function openCameraSelector() {
+    const videoPermissionStatus = await navigator.permissions.query({ name: 'camera' })
+
+    if (videoPermissionStatus.state !== "granted") {
+        log("No permissions granted, prompting user")
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+            stream.getTracks().forEach((track) => track.stop())
+        } catch (error) {
+            handleMediaError(error)
+            return
+        }
+    }
+
+    const devices = await navigator.mediaDevices.enumerateDevices()
+    const videoCameras = devices.filter(device => device.kind === 'videoinput')
+    
+    document.querySelector(".camera-frame-container").style.display = "block"
+
+    currentWebcamSelectedStream = null
+    cameraSelection.innerHTML = ""
+
+    for (camera of videoCameras) {
+        log("Camera " + camera.label)
+
+        const option = document.createElement('option')
+        option.value = camera.deviceId
+        option.textContent = camera.label || `Camera ${camera.deviceId}`
+
+        cameraSelection.appendChild(option)
+    }
+
+    await changeCameraSelection()
+    cameraSelectorOpen = true
+}
+
+async function closeCameraSelector(stopTracks=true) {
+    if (!cameraSelectorOpen) {
+        return
+    }
+
+    document.querySelector(".camera-frame-container").style.display = "none"
+    
+    if (currentWebcamSelectedStream && stopTracks) {
+        await currentWebcamSelectedStream.getTracks().forEach(track => track.stop())
+        currentWebcamSelectedStream = null
+    }
+
+    cameraSelectorOpen = false
+}
+
+async function changeCameraSelection(id) {
+    try {
+        const videoStream = await navigator.mediaDevices.getUserMedia({ video: id ? { deviceId: id } : true })
+    
+        if (currentWebcamSelectedStream) {
+            currentWebcamSelectedStream.getTracks().forEach(track => track.stop())
+        }
+    
+        document.getElementById("videoPreview").srcObject = videoStream
+        currentWebcamSelectedStream = videoStream
     } catch (error) {
         handleMediaError(error)
     }
@@ -560,9 +630,8 @@ async function onWebSocketRecieve(event) {
 }
 
 async function bindPermissionListeners() {
-    const videoPermissionStatus = await navigator.permissions.query({ video: true })
-    const micPermissionStatus = await navigator.permissions.query({ audio: true })
-
+    const videoPermissionStatus = await navigator.permissions.query({ name: 'camera' })
+    const micPermissionStatus = await navigator.permissions.query({ name: 'microphone' })
 
     videoPermissionStatus.onchange = () => {
         if (isListener) {
@@ -723,19 +792,36 @@ toggleMic.addEventListener("click", () => {
 })
 
 toggleCam.addEventListener("click", () => {
-    if (!WebRTCStarted || isListener) {
+    if (!WebRTCStarted || isListener || cameraSelectorOpen) {
         return
     }
 
-    if (!cameraEnabled) {
-        turnCameraOn()
-        toggleCam.innerHTML = "Turn camera off"
-    } else {
+    if (cameraEnabled) {
         turnCameraOff()
         toggleCam.innerHTML = "Turn camera on"
+    } else { 
+        openCameraSelector()
     }
 })
 
 messageSendButton.addEventListener("click", () => {
     sendChatMessage()
+})
+
+cameraSelection.addEventListener("change", (event) => {
+    event.preventDefault()
+    changeCameraSelection(event.target.value)
+})
+
+document.getElementById("close-camera-selector").addEventListener("click", () => {
+    closeCameraSelector()
+})
+
+document.getElementById("start-camera-button").addEventListener("click", () => {
+    if (!WebRTCStarted || cameraEnabled || !currentWebcamSelectedStream) {
+        return
+    }
+
+    turnCameraOn(currentWebcamSelectedStream)
+    closeCameraSelector(false)
 })

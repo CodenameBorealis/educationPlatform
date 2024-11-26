@@ -1,8 +1,11 @@
-body, html {
+body,
+html {
     height: 100%;
     margin: 0;
-    background-color: #121212; /* Dark background */
-    color: #ffffff; /* Light text */
+    background-color: #121212;
+    /* Dark background */
+    color: #ffffff;
+    /* Light text */
     font-family: Arial, sans-serif;
 }
 
@@ -15,7 +18,8 @@ body, html {
     display: flex;
     flex-direction: column;
     border-left: 2px solid #444;
-    background-color: #1e1e1e; /* Dark background for the container */
+    background-color: #1e1e1e;
+    /* Dark background for the container */
     box-shadow: -2px 0px 5px rgba(0, 0, 0, 0.2);
 }
 
@@ -33,7 +37,8 @@ body, html {
     padding: 15px;
     background-color: #222;
     border-bottom: 2px solid #444;
-    max-height: calc(100% - 130px); /* Allow space for header and footer */
+    max-height: calc(100% - 130px);
+    /* Allow space for header and footer */
 }
 
 .message {
@@ -97,6 +102,73 @@ body, html {
 
 .chat-footer button:hover {
     background-color: #0056b3;
+}
+
+.camera-frame-container {
+    position: absolute;
+    display: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
+    max-width: 500px;
+    width: 100%;
+}
+
+.camera-frame {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.camera-preview {
+    flex: 1;
+}
+
+#videoPreview {
+    height: auto;
+    border-radius: 8px;
+    width: auto;
+}
+
+.camera-controls {
+    margin-left: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+}
+
+.close-btn {
+    height: 30px;
+    top: 5px;
+    right: 5px;
+    position: absolute;
+    font-size: 18px;
+    background-color: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #ff0000;
+}
+
+#cameraSelect {
+    width: 150px;
+}
+
+#cameraSelect option {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.video-frame {
+    max-height: 500px;
+    max-width: 600px;
 }
 
 @media (max-width: 1012px) {
