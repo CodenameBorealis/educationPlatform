@@ -5,3 +5,4 @@ __pycache__/
 .vscode/*
 etc.txt
 .env.production
+eduPlatform/db.sqlite3
