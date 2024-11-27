@@ -56,7 +56,7 @@ async function createOffer(remoteUserId) {
         offer
     }));
 
-    log("Sent offer")
+    log("Sent offer to user-" + remoteUserId)
 }
 
 async function addIceCandidate(from, candidate) {
@@ -94,24 +94,29 @@ async function renegotiatePeerWebcam(remoteUserId, videoTrack, stream) {
     await createOffer(remoteUserId)
 }
 
-function peerAddScreenShareStream(peer, stream) {
-    const audioSender = peer.addTrack(stream.getAudioTracks()[0], stream)
-    const videoSender = peer.addTrack(stream.getVideoTracks()[0], stream)
-
-    stream.audioSender = audioSender
-    stream.videoSender = videoSender
-}
-
 async function onPeerConnected(peer, remoteUserId) {
     log("Running initial sync after connection.")
 
     if (cameraEnabled) {
         if (!webcamTrack) {
             log("Webcam track is not found.", "warn")
-            return
+        } else {
+            renegotiatePeerWebcam(remoteUserId, webcamTrack, localStream)
         }
+    }
 
-        renegotiatePeerWebcam(remoteUserId, webcamTrack, localStream)
+    if (screenShareSelf) {
+        if (!screenShareStream) {
+            log("Screenshare track not found.", "warn")
+        } else {
+            ws.send(JSON.stringify({
+                "to": remoteUserId,
+                "type": "start-screenshare",
+                "mediaId": screenShareStream.id
+            }))
+
+            renegotiatePeerScreenShare(remoteUserId, screenShareStream)
+        }
     }
 }
 
@@ -143,6 +148,9 @@ function createPeerConnection(remoteUserId) {
     }
 
     var peerConnection = new RTCPeerConnection(configuration)
+    
+    peerConnection.streamMap = new Map()
+    peerConnection.streamMap.onUpdate = () => {}
 
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
@@ -155,13 +163,32 @@ function createPeerConnection(remoteUserId) {
         }
     }
 
-    peerConnection.ontrack = (event) => {
-        console.log(event.streams[0].id)
+    peerConnection.ontrack = async (event) => {
+        try {
+            log("Incoming track stream " + event.streams[0].id)
 
-        if (event.track.kind === "audio") {
-            addAudio(remoteUserId, event.streams[0])
-        } else if (event.track.kind === "video") {
-            addVideo(remoteUserId, event.streams[0])
+            const defaultMediaStreamId = await awaitMapEntry(peerConnection.streamMap, "default_stream", 10000)
+
+            if (event.streams[0].id === defaultMediaStreamId) {
+                if (event.track.kind === "audio") {
+                    addAudio(remoteUserId, event.streams[0])
+                } else if (event.track.kind === "video") {
+                    addVideo(remoteUserId, event.streams[0])
+                }
+
+                return
+            }
+
+            const screenshareMediaStreamId = await awaitMapEntry(peerConnection.streamMap, "screenshare_stream", 10000)
+
+            if (event.streams[0].id === screenshareMediaStreamId) {
+                if (event.track.kind === "video") {
+                    loadScreenShare(event.streams[0])
+                }
+            }
+        } catch (error) {
+            log("Failed to process onTrack, check console for errors.", "error")
+            console.log(error)
         }
     }
 
@@ -191,9 +218,47 @@ function createPeerConnection(remoteUserId) {
     log("Made peer connection")
 }
 
+function setPeerDefaultMediaStream(remoteUserId, id) {
+    const peer = peers[remoteUserId]
+    if (!peer) {
+        return
+    }
+
+    peer.streamMap.set("default_stream", id)
+    peer.streamMap.onUpdate()
+
+    log("Set default remote stream id for user " + remoteUserId + " to " + id)
+}
+
+async function connectUser(remoteUserId, defaultMediaStreamId) {
+    log("Connecting user-" + remoteUserId)
+
+    await createOffer(remoteUserId)
+
+    if (!isListener) {
+        log("Sent default mediaStream id.")
+        ws.send(JSON.stringify({
+            to: remoteUserId,
+            type: "set_default_media",
+            id: localStream.id
+        }))
+    }
+
+    peers[remoteUserId].streamMap.set("default_stream", defaultMediaStreamId)
+    peers[remoteUserId].streamMap.onUpdate()
+
+    log("Set default stream id to " + defaultMediaStreamId)
+}
+
 async function onWebRTCStart() {
     messageSendButton.disabled = false
     loadMessageHistory()
+
+    await getHostInfo(currentToken)
+
+    if (isHost) {
+        loadAsHost()
+    }
 
     if (!isListener) {
         toggleMicrophone(false)
@@ -211,13 +276,15 @@ async function startWebRTC(is_listener = false) {
     try {
         if (!is_listener) {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
-            console.log(localStream)
         } else {
             toggleCam.disabled = true
             toggleMic.disabled = true
         }
 
-        ws.send(JSON.stringify({ type: 'join' }));
+        ws.send(JSON.stringify({
+            type: 'new-participant',
+            default_media: !isListener ? localStream.id : null
+        }));
 
         onWebRTCStart()
 
@@ -226,4 +293,4 @@ async function startWebRTC(is_listener = false) {
     } catch (error) {
         handleMediaError(error)
     }
-}
+} 

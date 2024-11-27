@@ -1,5 +1,5 @@
 const logFrame = document.getElementById("logs");
-var userId
+var userId, hostId, isHost
 
 function log(message, type = "LOG", consoleBased=false) {
     const textContent = `[${new Date().toLocaleTimeString()}] - [${type.toUpperCase()}]: ${message}`;
@@ -51,11 +51,28 @@ async function getMyUserId() {
     json = await userInfo.json()
 
     if (!json || json["success"] == false) {
-        log("Failed to fetch user data")
+        log("Failed to fetch user data", "error")
         return
     }
 
     userId = json["data"]["user_id"]
+}
+
+async function getHostInfo(token) {
+    if (!userId) {
+        getMyUserId()
+    }
+
+    hostInfo = await getHttpAsync(`/conference/api/get-host/?token=${token}`)
+    json = await hostInfo.json()
+
+    if (!json || json["success"] == false) {
+        log("Failed to fetch conference host data", "error")
+        return
+    }
+
+    hostId = json["host"]
+    isHost = hostId == userId
 }
 
 function removeStream(type, id) {
@@ -69,37 +86,52 @@ function removeStream(type, id) {
     stream.srcObject = null
 }
 
-function addAudio(id, src) {
-    const existing = document.getElementById(`audio-${id}`)
-    if (existing) {
-        existing.remove()
-        existing.srcObject = null
+async function awaitMapEntry(map, key, timeout = 5000) {
+    if (map.has(key)) {
+        return map.get(key);
     }
 
-    const remoteAudio = document.createElement('audio')
-
-    remoteAudio.srcObject = src
-    remoteAudio.autoplay = true
-    remoteAudio.id = `audio-${id}`
-
-    document.getElementById("mics").appendChild(remoteAudio)
-}
-
-function addVideo(id, src) {
-    const existing = document.getElementById(`video-${id}`)
-    if (existing) {
-        existing.remove()
-        existing.srcObject = null
+    if (!awaitMapEntry.resolvers) {
+        awaitMapEntry.resolvers = new Map();
     }
 
-    const remoteVideo = document.createElement('video')
+    if (!awaitMapEntry.resolvers.has(key)) {
+        awaitMapEntry.resolvers.set(key, []);
+    }
 
-    remoteVideo.srcObject = src
-    remoteVideo.autoplay = true
-    remoteVideo.playsInline = true
-    remoteVideo.muted = true
-    remoteVideo.id = `video-${id}`
-    remoteVideo.classList.add("video-frame")
+    return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            const resolvers = awaitMapEntry.resolvers.get(key) || [];
+            awaitMapEntry.resolvers.set(
+                key,
+                resolvers.filter((r) => r !== resolve)
+            );
 
-    document.getElementById("videos").appendChild(remoteVideo)
+            reject(new Error(`Timeout: No entry for key "${key}" within ${timeout}ms`));
+        }, timeout);
+
+        awaitMapEntry.resolvers.get(key).push(resolve);
+
+        const checkMap = () => {
+            if (map.has(key)) {
+                clearTimeout(timeoutId);
+                const value = map.get(key);
+
+                const resolvers = awaitMapEntry.resolvers.get(key) || [];
+                resolvers.forEach((r) => r(value));
+
+                awaitMapEntry.resolvers.delete(key);
+            }
+        };
+
+        if (!awaitMapEntry.listenersAdded) {
+            awaitMapEntry.listenersAdded = true;
+
+            map.onUpdate = () => {
+                for (const key of awaitMapEntry.resolvers.keys()) {
+                    checkMap(key);
+                }
+            };
+        }
+    });
 }

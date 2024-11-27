@@ -1,3 +1,5 @@
+// To whoever is reading the JS code for the client, we both know the code is shit, the least I can do is say sorry
+
 const toggleLogBtn = document.getElementById("toggle-logs")
 
 const tokenInput = document.getElementById("room-token")
@@ -19,7 +21,6 @@ const messageInput = document.getElementById("chat-input")
 const cameraSelection = document.getElementById("cameraSelect")
 
 var currentToken, hostId
-var isSharingScreen, screenShareStream
 
 var microphoneEnabled = false
 
@@ -66,6 +67,45 @@ async function bindPermissionListeners() {
             log("Microphone access denied, please ensure microphone access are granted to continue.", "error")
         }
     }
+}
+
+function loadAsHost() {
+    screenShareBtn.style.display = "block"
+
+    screenShareBtn.addEventListener("click", async () => {
+        if (!WebRTCStarted || (isSharingScreen && !screenShareSelf)) {
+            return
+        }
+
+        if (screenShareSelf) { 
+            await stopScreenShare()
+            screenShareBtn.innerHTML = "Screen share"
+
+            return
+        }
+
+        await startScreenShare()
+
+        if (screenShareSelf) {
+            screenShareBtn.innerHTML = "Stop sharing screen"
+        }
+    })
+}
+
+function addAudio(id, src) {
+    const existing = document.getElementById(`audio-${id}`)
+    if (existing) {
+        existing.remove()
+        existing.srcObject = null
+    }
+
+    const remoteAudio = document.createElement('audio')
+
+    remoteAudio.srcObject = src
+    remoteAudio.autoplay = true
+    remoteAudio.id = `audio-${id}`
+
+    document.getElementById("mics").appendChild(remoteAudio)
 }
 
 connectAudio.disabled = true
@@ -168,12 +208,4 @@ document.getElementById("start-camera-button").addEventListener("click", () => {
 
     turnCameraOn(currentWebcamSelectedStream)
     closeCameraSelector(false)
-})
-
-screenShareBtn.addEventListener("click", () => {
-    if (!WebRTCStarted || isSharingScreen) {
-        return
-    }
-
-    startScreenShare()
 })

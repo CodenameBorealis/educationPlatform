@@ -41,7 +41,7 @@
 
     <button id="toggle-mic">Unmute</button>
     <button id="toggle-cam">Turn camera on</button>
-    <button id="screen-share">Screen share</button>
+    <button id="screen-share" style="display: none;">Screen share</button>
     <button id="open-chat" style="display: none;">Open chat</button>
 
     <br>
@@ -67,6 +67,13 @@
 
     <div id="mics">
     </div>
+
+    <br>
+
+    <video id="screen-share-video" class="screenshare-video"></video>
+    <audio id="screen-share-audio"></audio>
+
+    <br>
 
     <button id="toggle-logs">Show logs</button>
     <span id="logs" style="display: none;"></span>

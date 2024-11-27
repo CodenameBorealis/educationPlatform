@@ -16,23 +16,33 @@ async function onWebSocketRecieve(event) {
         log("Got global WebSocket response - " + type)
     }
 
+    // Global signaling calls
+
     if (type == "new-participant" && from != userId) {
         if (peers[from]) {
             disconnectUser(from)
         }
-
-        await createOffer(from)
+        await connectUser(from, data["default_media"])
     } else if (type == "global-message") {
         if (from == userId) {
             return
         }
-
         await onMessageReceive(data)
+    } else if (type == "start-screenshare" && from != userId) {
+        if (isSharingScreen) {
+            return
+        }
+        
+        await onWebsocketScreenshare(data["mediaId"], from)
+    } else if (type == "stop-screenshare" && from != userId) {
+        await onWebsockerStopScreenshare(from)
     }
 
     if (!to == userId) {
         return
     }
+
+    // WebRTC calls
 
     if (type == "offer") {
         await handleOffer(offer, from)
@@ -40,7 +50,11 @@ async function onWebSocketRecieve(event) {
         await peers[from].setRemoteDescription(new RTCSessionDescription(answer))
     } else if (type == "candidate") {
         await addIceCandidate(from, candidate)
+    } else if (type == "set_default_media") {
+        setPeerDefaultMediaStream(from, data["id"])
     }
+
+    // Personal response calls
 
     if (type == "webcam_start") {
         log("Track ID: " + data["id"])

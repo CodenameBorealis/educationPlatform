@@ -3,6 +3,25 @@ var cameraEnabled = false
 var currentWebcamSelectedStream, webcamTrack
 var cameraSelectorOpen = false
 
+function addVideo(id, src) {
+    const existing = document.getElementById(`video-${id}`)
+    if (existing) {
+        existing.remove()
+        existing.srcObject = null
+    }
+
+    const remoteVideo = document.createElement('video')
+
+    remoteVideo.srcObject = src
+    remoteVideo.autoplay = true
+    remoteVideo.playsInline = true
+    remoteVideo.muted = true
+    remoteVideo.id = `video-${id}`
+    remoteVideo.classList.add("video-frame")
+
+    document.getElementById("videos").appendChild(remoteVideo)
+}
+
 async function turnCameraOff() {
     if (!cameraEnabled) {
         return
