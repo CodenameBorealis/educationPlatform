@@ -177,6 +177,11 @@ html {
     max-width: 600px;
 }
 
+.screenshare-video {
+    max-width: 1000px;
+    max-height: 800px;
+}
+
 @media (max-width: 1012px) {
     .chat-container {
         width: 100%;
