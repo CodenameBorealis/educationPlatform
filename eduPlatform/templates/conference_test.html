@@ -41,6 +41,7 @@
 
     <button id="toggle-mic">Unmute</button>
     <button id="toggle-cam">Turn camera on</button>
+    <button id="screen-share">Screen share</button>
     <button id="open-chat" style="display: none;">Open chat</button>
 
     <br>
@@ -81,7 +82,15 @@
     integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
     crossorigin="anonymous"></script>
 
-<script src="{% static 'conference/js/testing.js' %}"></script>
 <script src="{% static 'common/js/requests.js' %}"></script>
+
+<script src="{% static 'conference/js/client/camera.js' %}"></script>
+<script src="{% static 'conference/js/client/chat.js' %}"></script>
+<script src="{% static 'conference/js/client/screenshare.js' %}"></script>
+<script src="{% static 'conference/js/client/utils.js' %}"></script>
+<script src="{% static 'conference/js/client/webrtc.js' %}"></script>
+<script src="{% static 'conference/js/client/websocket.js' %}"></script>
+
+<script src="{% static 'conference/js/loader.js' %}"></script>
 
 </html>
