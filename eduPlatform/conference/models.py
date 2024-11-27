@@ -3,7 +3,7 @@ import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 
-# Create your models here.
+# Database model for the conference
 class Conference(models.Model):
     host = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="hosted_conferences")
     name = models.CharField(max_length=165, default="Meeting")
