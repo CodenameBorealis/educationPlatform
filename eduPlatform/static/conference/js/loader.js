@@ -69,29 +69,6 @@ async function bindPermissionListeners() {
     }
 }
 
-function loadAsHost() {
-    screenShareBtn.style.display = "block"
-
-    screenShareBtn.addEventListener("click", async () => {
-        if (!WebRTCStarted || (isSharingScreen && !screenShareSelf)) {
-            return
-        }
-
-        if (screenShareSelf) { 
-            await stopScreenShare()
-            screenShareBtn.innerHTML = "Screen share"
-
-            return
-        }
-
-        await startScreenShare()
-
-        if (screenShareSelf) {
-            screenShareBtn.innerHTML = "Stop sharing screen"
-        }
-    })
-}
-
 function addAudio(id, src) {
     const existing = document.getElementById(`audio-${id}`)
     if (existing) {
