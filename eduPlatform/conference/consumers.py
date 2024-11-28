@@ -111,7 +111,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         self.coHostList.add(data.get("to"))
 
         await self.channel_layer.group_send(
-            f"private_user{data.get("to")}",
+            f"private_user{data.get('to')}",
             {"type": "signaling_message", "message": data},
         )
 
