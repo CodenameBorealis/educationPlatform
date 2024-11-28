@@ -7,15 +7,21 @@ from django.core.cache import cache
 
 
 class SignalingConsumer(AsyncWebsocketConsumer):
-    def conferenceExists(self, conference_token):
+    def conference_exists(self, conference_token):
         return self.Conference.objects.filter(token=conference_token).exists()
 
-    def getConferenceHostId(self, conference_token):
+    def get_conference_host_id(self, conference_token):
         return self.Conference.objects.get(token=conference_token).host.id
+
+    # Conference variables
+    activeUsers = set()
 
     # Screen share state variables
     isScreenSharing = False
     screenShareUserID = -1
+
+    # Co-Host information variables
+    coHostList = set()
 
     async def connect(self):
         if not self.scope[
@@ -36,10 +42,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         self.room_group_name = f"signaling_{self.room_token}"
 
         self.private_group_name = f'private_user{self.scope.get("user").id}'
-        self.hostId = await dsa(self.getConferenceHostId)(self.room_token)
+        self.hostId = await dsa(self.get_conference_host_id)(self.room_token)
 
         # Check if the conference actually exists, if not, disconnect user
-        if not await dsa(self.conferenceExists)(self.room_token):
+        if not await dsa(self.conference_exists)(self.room_token):
             await self.close(code=4002)
             return
 
@@ -48,22 +54,89 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         if not cache.get(self.message_history_cache_key):
             cache.set(self.message_history_cache_key, [], timeout=86400)
 
+        # A hashmap containing all the signal types that are handled by a seperate method (usually rule-enforced types like 'add-cohost' or 'start-screenshare')
+        self.TYPE_HANDLERS = {
+            "global-message": self.handle_global_chat_message,
+            "start-screenshare": self.start_screenshare,
+            "stop-screenshare": self.stop_screenshare,
+            "add-cohost": self.add_cohost,
+            "remove-cohost": self.remove_cohost,
+        }
+
+        self.activeUsers.add(self.scope["user"].id)
+
         # If everything checks out, add user to the group channels and accept the websocket connection
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.channel_layer.group_add(self.private_group_name, self.channel_name)
         await self.accept()
 
     async def disconnect(self, *args, **kwargs):
+        userId = self.scope["user"].id
+
         # An additional check if the user is disconnecting and was sharing their screen, call stop_screenshare and pass in a mockup data input
-        if self.scope["user"].id == self.screenShareUserID and self.isScreenSharing:
+        if userId == self.screenShareUserID and self.isScreenSharing:
             await self.stop_screenshare(
-                {"from": self.screenShareUserID, "type": "stop-screenshare"}
+                {"from": userId, "type": "stop-screenshare"}
             )
+
+        # If the user was a cohost before disconnecting, mockup a data input as host and remove the user from the cohosts list
+        if userId in self.coHostList:
+            await self.remove_cohost(
+                {"from": self.hostId, "type": "remove-cohost", "to": userId}
+            )
+
+        self.activeUsers.remove(userId)
 
         # Remove user from the existing group channels
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
         await self.channel_layer.group_discard(
             self.private_group_name, self.channel_name
+        )
+
+    async def add_cohost(self, data):
+        # An async function used as an override for 'add-cohost' signal type
+
+        # Validate user permissions and check whether they are already a co-host
+        if data.get("from") != self.hostId or data.get("to") in self.coHostList:
+            return
+
+        # If user is not in the conference, ignore the request
+        if data.get("to") not in self.activeUsers:
+            return
+
+        # If the user is the host, ignore request
+        if data.get("to") == self.hostId:
+            return
+
+        self.coHostList.add(data.get("to"))
+
+        await self.channel_layer.group_send(
+            f"private_user{data.get("to")}",
+            {"type": "signaling_message", "message": data},
+        )
+
+    async def remove_cohost(self, data):
+        # An async function used as an override for 'remove-cohost' signal type
+
+        # Validate permissions and check whether they actually exist in the cohost set
+        if data.get("from") != self.hostId or data.get("to") not in self.coHostList:
+            return
+        
+        target = data.get("to")
+        
+        # If the user is the host, ignore request
+        if target == self.hostId:
+            return
+
+        self.coHostList.remove(target)
+        
+        # If the user was sharing their screen, stop it
+        if self.isScreenSharing and self.screenShareUserID == target:
+            await self.stop_screenshare({"from": target, "type": "stop-screenshare"})
+
+        await self.channel_layer.group_send(
+            f"private_user{target}",
+            {"type": "signaling_message", "message": data},
         )
 
     async def handle_global_chat_message(self, data):
@@ -102,7 +175,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # Async function used as an override for 'start-screenshare' signal type
 
         # Check user permissions (Don't worry about data.get("from"), it was set by the backend server in receive function)
-        if self.hostId != data.get("from"):
+        if self.hostId != data.get("from") and data.get("from") not in self.coHostList:
             return
 
         """
@@ -110,7 +183,9 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         "data.get("to")" is used in case a user joins the conference while someone's already sharing their screen,
         so the host can get the start-screenshare through just for that specific user
         """
-        if self.isScreenSharing and not data.get("to"):
+        if self.isScreenSharing and not (
+            data.get("to") and data.get("from") == self.screenShareUserID
+        ):
             return
 
         # Set the screenshare status to true and save the sharing user's ID
@@ -147,16 +222,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         data["from"] = self.scope["user"].id
 
-        # If the 'type' of the signal is one of the rule-enforced methods or requires special handling, send it to a dedicated method
+        # If the 'type' of the signal is one of the rule-enforced methods or requires special handling, send it to a dedicated handler
         type = data.get("type")
-        if type == "global-message":
-            await self.handle_global_chat_message(data)
-            return
-        elif type == "start-screenshare":
-            await self.start_screenshare(data)
-            return
-        elif type == "stop-screenshare":
-            await self.stop_screenshare(data)
+        if type in self.TYPE_HANDLERS:
+            await self.TYPE_HANDLERS[type](data)
             return
 
         # If data doesn't have a field 'to', this is a global message and it will be sent to everyone, otherwise a private channel will be used.
