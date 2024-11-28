@@ -68,6 +68,10 @@ async function onWebSocketRecieve(event) {
         addVideo(from, new MediaStream([track]))
     } else if (type == "webcam_stop") {
         removeStream("video", from)
+    } else if (type == "add-cohost") {
+        loadAsCoHost()
+    } else if (type == "remove-cohost") {
+        await unloadCoHost()
     }
 }
 
