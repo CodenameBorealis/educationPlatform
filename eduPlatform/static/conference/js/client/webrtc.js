@@ -86,22 +86,17 @@ async function addIceCandidate(from, candidate) {
 
 }
 
-async function renegotiatePeerWebcam(remoteUserId, videoTrack, stream) {
-    const peer = peers[remoteUserId]
-    const sender = peer.addTrack(videoTrack, stream)
-    peer.videoCamSender = sender
-
-    await createOffer(remoteUserId)
-}
-
 async function onPeerConnected(peer, remoteUserId) {
     log("Running initial sync after connection.")
+
+    var areChangesMade = false
 
     if (cameraEnabled) {
         if (!webcamTrack) {
             log("Webcam track is not found.", "warn")
         } else {
-            renegotiatePeerWebcam(remoteUserId, webcamTrack, localStream)
+            areChangesMade = true
+            peerAddWebcam(remoteUserId, webcamTrack, localStream)
         }
     }
 
@@ -109,14 +104,20 @@ async function onPeerConnected(peer, remoteUserId) {
         if (!screenShareStream) {
             log("Screenshare track not found.", "warn")
         } else {
+            areChangesMade = true
+
             ws.send(JSON.stringify({
                 "to": remoteUserId,
                 "type": "start-screenshare",
                 "mediaId": screenShareStream.id
             }))
-
-            renegotiatePeerScreenShare(remoteUserId, screenShareStream)
+            
+            peerAddScreenShareStream(peer, screenShareStream)
         }
+    }
+
+    if (areChangesMade) {
+        await createOffer(remoteUserId)
     }
 }
 
