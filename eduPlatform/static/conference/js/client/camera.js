@@ -22,6 +22,17 @@ function addVideo(id, src) {
     document.getElementById("videos").appendChild(remoteVideo)
 }
 
+function peerAddWebcam(remoteUserId, videoTrack, stream) {
+    const peer = peers[remoteUserId]
+    const sender = peer.addTrack(videoTrack, stream)
+    peer.videoCamSender = sender
+}
+
+async function peerRenegotiateWebcam(remoteUserId, videoTrack, stream) {
+    peerAddWebcam(remoteUserId, videoTrack, stream)
+    await createOffer(remoteUserId)
+}
+
 async function turnCameraOff() {
     if (!cameraEnabled) {
         return
@@ -94,7 +105,7 @@ async function turnCameraOn(videoStream) {
         addVideo(userId, videoStream)
 
         for (const [id, peer] of Object.entries(peers)) {
-            await renegotiatePeerWebcam(id, videoTrack, localStream)
+            await peerRenegotiateWebcam(id, videoTrack, localStream)
         }
 
         cameraEnabled = true
