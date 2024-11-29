@@ -1,10 +1,12 @@
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.contrib.auth import get_user_model
 
 from channels.testing import WebsocketCommunicator
 from channels.auth import AuthMiddlewareStack
 from channels.db import database_sync_to_async as dsa
 from channels.layers import get_channel_layer
+
+from asyncio import TimeoutError
 
 from eduPlatform.asgi import application
 from .consumers import SignalingConsumer
@@ -35,10 +37,10 @@ class SignalingConsumerTest(TestCase):
             "Invalid scope user username",
         )
 
-    async def tearDown(self):
+    async def asyncTearDown(self):
         await self.communicator.disconnect()
 
-    async def test_unauthorized(self):
+    async def test_not_logged_in(self):
         await self.asyncSetUp()
 
         communicator = WebsocketCommunicator(
@@ -49,22 +51,39 @@ class SignalingConsumerTest(TestCase):
 
         self.assertFalse(connected, "Connected without proper authentication.")
 
-        await self.tearDown()
+        await self.asyncTearDown()
+
+    async def test_unauthorized(self):
+        await self.asyncSetUp()
+
+        newUser = await dsa(self.User.objects.create)(
+            username="test2", email="test@test.c", password="test"
+        )
+        await dsa(newUser.save)()
+
+        newConference = await dsa(Conference.objects.create)(host=newUser)
+        await dsa(newConference.save)()
+
+        communicator = WebsocketCommunicator(
+            AuthMiddlewareStack(application), f"/ws/signaling/{newConference.token}/"
+        )
+        communicator.scope["user"] = self.user
+
+        connected, _ = await communicator.connect()
+
+        self.assertFalse(
+            connected, "Connected without being added into the allowed_users list."
+        )
+
+        await self.asyncTearDown()
 
     async def test_data_signaling(self):
         await self.asyncSetUp()
 
-        channel_layer = get_channel_layer()
-        group = f"signaling_{self.conference.token}"
-
-        await channel_layer.group_send(
-            group,
+        await self.communicator.send_json_to(
             {
-                "type": "signaling_message",
-                "message": {
-                    "type": "join",
-                    "userId": str(self.user.id),
-                },
+                "type": "new-participant",
+                "userId": str(self.user.id),
             },
         )
 
@@ -72,11 +91,38 @@ class SignalingConsumerTest(TestCase):
 
         self.assertEqual(
             response,
-            {"type": "join", "userId": str(self.user.id)},
+            {
+                "from": self.user.id,
+                "type": "new-participant",
+                "userId": str(self.user.id),
+            },
             "Got an invalid JSON response",
         )
 
-        await self.tearDown()
+        await self.asyncTearDown()
+
+    async def test_concurrent_connections(self):
+        await self.asyncSetUp()
+        
+        async def _create_communicator(id):
+            user = await dsa(self.User.objects.create)(username=str(id), password="test", email=f"test{id}@test.c")
+            
+            communicator = WebsocketCommunicator(
+                AuthMiddlewareStack(application),
+                f"/ws/signaling/{self.conference.token}/",
+            )
+            communicator.scope["user"] = user
+            
+            await dsa(user.save)()
+            await dsa(self.conference.allowed_users.add)(user)
+
+            return communicator
+        
+        communicators = [await _create_communicator(id) for id in range(100)]
+        connections = [await communicator.connect() for communicator in communicators]
+        
+        for connected, _ in connections:
+            self.assertTrue(connected, "Failed to connect websocket.")
 
     async def test_private_data_signaling(self):
         await self.asyncSetUp()
@@ -107,7 +153,53 @@ class SignalingConsumerTest(TestCase):
             "Got invalid JSON response.",
         )
 
-        await self.tearDown()
+        await self.asyncTearDown()
+
+    async def test_global_message(self):
+        await self.asyncSetUp()
+
+        await self.communicator.send_json_to(
+            {"type": "global-message", "contents": "Hello, world"}
+        )
+
+        response = await self.communicator.receive_json_from(timeout=5)
+
+        self.assertEqual(
+            response.get("type"), "global-message", "Invalid type returned"
+        )
+        self.assertEqual(
+            response.get("contents"), "Hello, world", "Invalid message contents"
+        )
+        self.assertEqual(response.get("from"), self.user.id, "Invalid sender user id")
+
+        await self.asyncTearDown()
+
+    async def test_large_message(self):
+        await self.asyncSetUp()
+
+        await self.communicator.send_json_to(
+            {"type": "global-message", "contents": "A" * 10000}
+        )
+
+        response = await self.communicator.receive_json_from(timeout=5)
+
+        self.assertEqual(
+            response.get("type"), "global-message", "Invalid type returned"
+        )
+        self.assertEqual(
+            response.get("contents"), "A" * 10000, "Invalid message contents"
+        )
+        self.assertEqual(response.get("from"), self.user.id, "Invalid sender user id")
+
+        await self.asyncTearDown()
+
+    async def test_missing_type(self):
+        await self.asyncSetUp()
+
+        await self.communicator.send_json_to({"contents": "Hello, world"})
+
+        with self.assertRaises(TimeoutError):
+            await self.communicator.receive_json_from()
 
 
 class MessageHistoryTest(TestCase):
