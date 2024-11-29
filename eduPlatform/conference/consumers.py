@@ -10,8 +10,15 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     def conference_exists(self, conference_token):
         return self.Conference.objects.filter(token=conference_token).exists()
 
+    def get_conference(self, conference_token):
+        return self.Conference.objects.get(token=conference_token)
+
     def get_conference_host_id(self, conference_token):
-        return self.Conference.objects.get(token=conference_token).host.id
+        return self.get_conference(conference_token).host.id
+
+    def user_allowed(self, conference_token, user_id):
+        conference = self.get_conference(conference_token)
+        return conference.allowed_users.filter(id=user_id).exists()
 
     # Conference variables
     activeUsers = set()
@@ -37,16 +44,29 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         self.Conference = Conference
         self.User = get_user_model()
 
+        self.user_id = self.scope["user"].id
+
         # Store information about the room the user is currently in
         self.room_token = self.scope["url_route"]["kwargs"]["token"]
+
         self.room_group_name = f"signaling_{self.room_token}"
+        self.private_group_name = f"private_user{self.user_id}"
 
-        self.private_group_name = f'private_user{self.scope.get("user").id}'
-        self.hostId = await dsa(self.get_conference_host_id)(self.room_token)
-
-        # Check if the conference actually exists, if not, disconnect user
+        # Check if the conference with this token exists
         if not await dsa(self.conference_exists)(self.room_token):
-            await self.close(code=4002)
+            await self.close(code=4001)
+            return
+
+        # Get the conference model
+        self.conference = await dsa(self.get_conference)(self.room_token)
+        self.host_id = await dsa(self.get_conference_host_id)(self.room_token)
+
+        # Check if the user is in the allowed_users lists
+        if (
+            not await dsa(self.user_allowed)(self.room_token, self.user_id)
+            and self.user_id != self.host_id
+        ):
+            await self.close(code=4003)
             return
 
         # Save the cache key for message history and if the cache doesn't exist, start a new empty cache
@@ -63,7 +83,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             "remove-cohost": self.remove_cohost,
         }
 
-        self.activeUsers.add(self.scope["user"].id)
+        self.activeUsers.add(self.user_id)
 
         # If everything checks out, add user to the group channels and accept the websocket connection
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
@@ -71,21 +91,24 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, *args, **kwargs):
-        userId = self.scope["user"].id
-
         # An additional check if the user is disconnecting and was sharing their screen, call stop_screenshare and pass in a mockup data input
-        if userId == self.screenShareUserID and self.isScreenSharing:
+        if self.user_id == self.screenShareUserID and self.isScreenSharing:
             await self.stop_screenshare(
-                {"from": userId, "type": "stop-screenshare"}
+                {"from": self.user_id, "type": "stop-screenshare"}
             )
 
         # If the user was a cohost before disconnecting, mockup a data input as host and remove the user from the cohosts list
-        if userId in self.coHostList:
+        if self.user_id in self.coHostList:
             await self.remove_cohost(
-                {"from": self.hostId, "type": "remove-cohost", "to": userId}
+                {
+                    "from": self.host_id,
+                    "type": "remove-cohost",
+                    "to": self.user_id,
+                }
             )
-
-        self.activeUsers.remove(userId)
+        
+        if self.user_id in self.activeUsers:
+            self.activeUsers.remove(self.user_id)
 
         # Remove user from the existing group channels
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -97,7 +120,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # An async function used as an override for 'add-cohost' signal type
 
         # Validate user permissions and check whether they are already a co-host
-        if data.get("from") != self.hostId or data.get("to") in self.coHostList:
+        if (
+            data.get("from") != self.host_id
+            or data.get("to") in self.coHostList
+        ):
             return
 
         # If user is not in the conference, ignore the request
@@ -105,7 +131,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             return
 
         # If the user is the host, ignore request
-        if data.get("to") == self.hostId:
+        if data.get("to") == self.host_id:
             return
 
         self.coHostList.add(data.get("to"))
@@ -119,17 +145,20 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # An async function used as an override for 'remove-cohost' signal type
 
         # Validate permissions and check whether they actually exist in the cohost set
-        if data.get("from") != self.hostId or data.get("to") not in self.coHostList:
+        if (
+            data.get("from") != self.host_id
+            or data.get("to") not in self.coHostList
+        ):
             return
-        
+
         target = data.get("to")
-        
+
         # If the user is the host, ignore request
-        if target == self.hostId:
+        if target == self.host_id:
             return
 
         self.coHostList.remove(target)
-        
+
         # If the user was sharing their screen, stop it
         if self.isScreenSharing and self.screenShareUserID == target:
             await self.stop_screenshare({"from": target, "type": "stop-screenshare"})
@@ -175,7 +204,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # Async function used as an override for 'start-screenshare' signal type
 
         # Check user permissions (Don't worry about data.get("from"), it was set by the backend server in receive function)
-        if self.hostId != data.get("from") and data.get("from") not in self.coHostList:
+        if (
+            self.host_id != data.get("from")
+            and data.get("from") not in self.coHostList
+        ):
             return
 
         """
@@ -221,6 +253,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # Load the data and for security measures to not let impersonation take place, override 'from' field
         data = json.loads(text_data)
         data["from"] = self.scope["user"].id
+
+        # If type is not specified, then return
+        if not data.get("type"):
+            return
 
         # If the 'type' of the signal is one of the rule-enforced methods or requires special handling, send it to a dedicated handler
         type = data.get("type")
