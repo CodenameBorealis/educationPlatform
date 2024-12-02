@@ -1,6 +1,8 @@
 from django.urls import path
 from . import views
 
+# User does not include any rendered pages, only APIs
+
 urlpatterns = [
     path("get_pfp/", views.GetProfilePicture.as_view()),
     path("login/", views.Login.as_view()),
