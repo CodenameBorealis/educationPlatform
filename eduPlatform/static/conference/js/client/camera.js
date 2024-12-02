@@ -138,7 +138,7 @@ async function openCameraSelector() {
     cameraSelection.innerHTML = ""
 
     for (camera of videoCameras) {
-        log("Camera " + camera.label)
+        log("Detected camera: " + camera.label)
 
         const option = document.createElement('option')
         option.value = camera.deviceId
