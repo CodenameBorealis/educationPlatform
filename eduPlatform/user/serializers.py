@@ -4,12 +4,15 @@ from django.contrib.auth import get_user_model
 import re
 
 def validation_error_to_string(error):
+    # Function used to convert serializer error into a user-friendly string that will be returned to the client
+    
     if isinstance(error.detail, list):
         return ', '.join(error.detail) 
     else:
         return ', '.join([f"{field}: {', '.join(msg)}" for field, msg in error.detail.items()])
             
 def validation_errors_to_string(errorList):
+    # Same as validation_error_to_string just for multiple errors
     error_messages = []
     for field, errors in errorList.items():
         error_messages.append(f"{field}: {', '.join(errors)}")
@@ -17,6 +20,8 @@ def validation_errors_to_string(errorList):
     return "\n".join(error_messages)
     
 class UserSerializer(serializers.Serializer):
+    # Serializer used to validate data from client's JSON input
+    
     username = serializers.CharField(
         max_length = 50,
         required = True

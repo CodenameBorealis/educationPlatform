@@ -6,6 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from .managers import CustomUserManager
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    # A custom User model for Django
+    
     username = models.CharField(_("Username"), unique=True, max_length=50)
     email = models.EmailField(_("Email address"), unique=True, null=False, default="")
     

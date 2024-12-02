@@ -4,6 +4,8 @@ from .serializers import UserSerializer
 from rest_framework.serializers import ValidationError
 
 class CustomUserManager(BaseUserManager):
+    #A manager for the custom user model in the database
+    
     def create_user(self, **extra_fields):
         serializer = UserSerializer(data=extra_fields)
         
