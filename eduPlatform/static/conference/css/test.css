@@ -177,6 +177,16 @@ html {
     max-width: 600px;
 }
 
+#micSelect {
+    width: 150px;
+}
+
+#micSelect option {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .screenshare-video {
     max-width: 1000px;
     max-height: 800px;

@@ -15,8 +15,6 @@
 </head>
 
 <body>
-    <input type="text" id="room-token">
-
     <div class="camera-frame-container">
         <div class="camera-frame d-flex align-items-center p-3 bg-dark rounded shadow-lg">
             <div class="camera-preview me-3">
@@ -30,9 +28,15 @@
             </div>
         </div>
     </div>
-
-    <button id="connect">Connect</button>
-    <button id="disconnect" style="margin-right: 20px;">Disconnect</button>
+    
+    <div class="input-group">
+        <input class="" type="text" id="room-token">
+        
+        <div class="input-group-append">
+            <button id="connect">Connect</button>
+            <button id="disconnect" style="margin-right: 20px;">Disconnect</button>
+        </div>
+    </div>
 
     <button id="connect-audio">Connect with audio</button>
     <button id="connect-mic">Connect with microphone</button>
@@ -41,6 +45,9 @@
 
     <button id="toggle-mic">Unmute</button>
     <button id="toggle-cam">Turn camera on</button>
+
+    <select id="micSelect" class="mb-2 btn"></select>
+
     <button id="screen-share" style="display: none;">Screen share</button>
     <button id="open-chat" style="display: none;">Open chat</button>
 
@@ -93,9 +100,10 @@
 
 <script src="{% static 'conference/js/client/utils.js' %}"></script>
 <script src="{% static 'conference/js/client/permissions.js' %}"></script>
+<script src="{% static 'conference/js/client/microphone.js' %}"></script>
+<script src="{% static 'conference/js/client/camera.js' %}"></script>
 <script src="{% static 'conference/js/client/websocket.js' %}"></script>
 <script src="{% static 'conference/js/client/webrtc.js' %}"></script>
-<script src="{% static 'conference/js/client/camera.js' %}"></script>
 <script src="{% static 'conference/js/client/screenshare.js' %}"></script>
 <script src="{% static 'conference/js/client/chat.js' %}"></script>
 

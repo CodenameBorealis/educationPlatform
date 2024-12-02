@@ -128,7 +128,10 @@ function onPeerCreation(peerConnection, remoteUserId) {
     }
 
     if (!isListener) {
-        localStream.getAudioTracks().forEach((track) => peerConnection.addTrack(track, localStream))
+        const micTrack = localStream.getAudioTracks()[0]
+        const sender = peerConnection.addTrack(micTrack, localStream)
+
+        peerConnection.userMicSender = sender
     } else {
         peerConnection.addTrack = function (...args) {
             throw new Error("Track addition is not allowed in listener mode.")
@@ -277,6 +280,7 @@ async function startWebRTC(is_listener = false) {
     try {
         if (!is_listener) {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            await loadMicrophoneSelector()
         } else {
             toggleCam.disabled = true
             toggleMic.disabled = true

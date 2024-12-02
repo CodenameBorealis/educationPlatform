@@ -19,10 +19,9 @@ const messageSendButton = document.getElementById("send-btn")
 const messageInput = document.getElementById("chat-input")
 
 const cameraSelection = document.getElementById("cameraSelect")
+const micSelection = document.getElementById("micSelect")
 
 var currentToken, hostId
-
-var microphoneEnabled = false
 
 var logsShown = false
 var chatShown = false
@@ -168,6 +167,10 @@ messageSendButton.addEventListener("click", () => {
     sendChatMessage()
 })
 
+micSelection.addEventListener("change", (event) => {
+    event.preventDefault()
+    changeMicrophone(event.target.value)
+})
 
 cameraSelection.addEventListener("change", (event) => {
     event.preventDefault()
