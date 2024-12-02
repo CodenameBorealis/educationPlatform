@@ -1,10 +1,17 @@
 const logFrame = document.getElementById("logs");
 var userId, hostId, isHost
 
-function log(message, type = "LOG", consoleBased=false) {
+const consoleBasedLogs = false
+const verboseLogsEnabled = true
+
+function log(message, type = "LOG", is_verbose=true) {
+    if (is_verbose && !verboseLogsEnabled) {
+        return
+    }
+
     const textContent = `[${new Date().toLocaleTimeString()}] - [${type.toUpperCase()}]: ${message}`;
     
-    if (consoleBased) {
+    if (consoleBasedLogs) {
         console.log(textContent);
         return;
     }
