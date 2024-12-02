@@ -7,7 +7,8 @@ To run the server follow these steps:
 4. Create a local enviroment using `virtualenv "./.venvs"`
 5. Enter the virtual enviroment using `.venvs/Scripts/activate`
 6. Run `pip install -r requirements.txt`
-7. From the main directory run `daphne eduPlatform.eduPlatfrom.asgi:application` to start a development server.
+7. Go to eduPlatform directory in your console
+8. From the eduPlatform directory run `daphne eduPlatfrom.asgi:application` to start a development server.
    **Note**: You must have daphne installed to run this, daphne itself should be included in the requirements, but make sure that it is installed correctly!
 
 To test the backend use
