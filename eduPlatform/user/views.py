@@ -1,12 +1,16 @@
 from django.shortcuts import render
 from django.views import View
-from django.http import *
 from django.conf import settings
 from django.shortcuts import redirect
+from django.http import FileResponse
 from django.contrib.auth import get_user_model, authenticate, login, logout
 
 from rest_framework.views import APIView
 from rest_framework.serializers import ValidationError
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+import rest_framework.status as status
 
 from PIL import Image, ImageOps
 
@@ -17,25 +21,23 @@ from json import loads
 
 # A class responsible for giving out the profile pictures of users
 class GetProfilePicture(APIView):
+    permission_classes = [IsAuthenticated]
+    
     pics_path = settings.UPLOAD_DIR / "profile_pictures"
     default = settings.STATIC_ROOT / "user/Pfp_default.png"
-
+    
     def get(self, request, *args, **kwargs):
-        # Only allow authenticated users to access the api
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("Not logged into an account.")
-        
         user_id = int(request.GET.get("user_id"))
         
         # No user_id given or malformed data
         if not user_id:
-            return HttpResponseNotFound("Missing user_id argument.")
+            return Response("Missing user_id argument.", status.HTTP_404_NOT_FOUND)
         
         User = get_user_model()
         user = User.objects.get(id=user_id if user_id != -1 else request.user.id)
         
         if not user: # No user
-            return HttpResponseNotFound("User not found")
+            return Response("User not found", status.HTTP_404_NOT_FOUND)
         
         # Sets the path to pfp link if it exists, or the default one and gives the extention of it
         picture_filename = str(user.profile_picture)
@@ -55,20 +57,18 @@ class GetProfilePicture(APIView):
 
 # A class responsible for getting the name of the user
 class GetUserName(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request, *args, **kwargs):
-        # Check if user is logged in
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this page.")
-
         if not request.GET.get("user_id"):
-            return HttpResponseBadRequest("No user_id given.")
+            return Response("No user_id given.", status.HTTP_400_BAD_REQUEST)
 
         # If user_id query is given and not equal to -1 then use it, otherwise use original requester id
         user_id = int(request.GET.get("user_id") if int(request.GET.get("user_id")) != -1 else request.user.id)
         User = get_user_model()
         
         if not user_id:
-            return HttpResponseBadRequest("User does not exist.")
+            return Response("User does not exist.", status.HTTP_400_BAD_REQUEST)
         
         user = None
         
@@ -76,9 +76,9 @@ class GetUserName(APIView):
         try:
             user = User.objects.get(id=user_id)
         except Exception as ex:
-            return HttpResponseBadRequest("User does not exist.")
+            return Response("User does not exist.", status.HTTP_400_BAD_REQUEST)
         
-        return JsonResponse({
+        return Response({
             "success": True,
             "data": {
                 "user_id": user.id,
@@ -88,14 +88,12 @@ class GetUserName(APIView):
 
 # Class responsible for getting user information
 class GetUserInfo(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request, *args, **kwargs):
-        # Restrict usage only for authenticated users
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this api.")
-        
         user = request.user
         
-        return JsonResponse({ # Return all the data about their account
+        return Response({ # Return all the data about their account
             "success": True,
             "data": {
                 "user_id": user.id,
@@ -111,36 +109,34 @@ class GetUserInfo(APIView):
 class Login(APIView):
     def post(self, request, *args, **kwargs):
         if not request.body:
-            return HttpResponseBadRequest("Missing request data.")
+            return Response("Missing request data.", status.HTTP_400_BAD_REQUEST)
         
         data = request.data
 
         # If data is invalid return badrequest.
         if not data or not data.get("username") or not data.get("password"):
-            return HttpResponseBadRequest("Missing json data.")
+            return Response("Missing json data.", status.HTTP_400_BAD_REQUEST)
 
         user = authenticate(request, username=data.get("username"), password=data.get("password"))
 
         # Successfully authenticated user, return success and redirect user
         if user:
             login(request, user)
-            return JsonResponse({
+            return Response({
                 "success": True,
                 "error_message": ""
             })
         else: # Otherwise return false and specify the error
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": "Incorrect username or password"
             })
 
 # Class responsible for logging the user out of their account
 class Logout(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def get(self, request, *args, **kwargs):
-        # Only let logged in users access this page
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this page")
-
         # Logout the user
         logout(request)
         
@@ -148,18 +144,16 @@ class Logout(APIView):
 
 # Class responsible for saving user description
 class SaveDescription(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
-        # Make sure user is logged in
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this api.")
-
         data = request.data
         
         if not data or not data.get("description"):
-            return HttpResponseBadRequest("No json data given.")
+            return Response("No json data given.", status.HTTP_400_BAD_REQUEST)
         
         if len(data.get("description")) > 350:
-            return JsonResponse({
+            return Response({
                 "success": False,
             })
 
@@ -168,30 +162,29 @@ class SaveDescription(APIView):
             user.description = data.get("description")
             user.save()
             
-            return JsonResponse({
+            return Response({
                 "success": True,
             })
         except Exception:
-            return JsonResponse({
+            return Response({
                 "success": False,
             })
 
 # Class responsible for changing user's username
 class ChangeUsername(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this api.")
-        
         data = request.data
         
         User = get_user_model()
         user = request.user
         
         if not data or not data.get("username") or not data.get("password"):
-            return HttpResponseBadRequest("Invalid JSON data.")
+            return Response("Invalid JSON data.", status.HTTP_400_BAD_REQUEST)
             
         if not user.check_password(data.get("password")):
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": "Invalid password."
             })
@@ -203,28 +196,26 @@ class ChangeUsername(APIView):
             user.username = validated
             user.save()
             
-            return JsonResponse({
+            return Response({
                 "success": True,
                 "error_message": ""
             })
         except ValidationError as error:
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": serializers.validation_error_to_string(error)
             })
 
 # Class responsible for changing user's profile picture
 class ChangeProfilePicture(APIView):
+    permission_classes = [IsAuthenticated]
     upload_path = settings.UPLOAD_DIR / "profile_pictures"
     
     def post(self, request, *args, **kwargs):
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this API.")
-        
         serializer = serializers.UploadProfilePictureSerializer(data=request.data)
         
         if not serializer.is_valid():
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": serializers.validation_errors_to_string(serializer.errors)
             })
@@ -246,31 +237,30 @@ class ChangeProfilePicture(APIView):
         request.user.profile_picture = filename
         request.user.save()
         
-        return JsonResponse({
+        return Response({
             "success": True,
             "error_message": ""
         })
 
 # Class responsible for changing user's password
 class ChangePassword(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You must be logged in to access this API.")
-        
         data = request.data
         user = request.user
         
         if not data.get("new_password") or not data.get("old_password"):
-            return HttpResponseBadRequest("Invalid JSON data.")
+            return Response("Invalid JSON data.", status.HTTP_400_BAD_REQUEST)
         
         if not user.check_password(data.get("old_password")):
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": "Invalid old password."
             })
         
         if user.check_password(data.get("new_password")):
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": "Cannot change the password to the same one."
             })
@@ -284,26 +274,25 @@ class ChangePassword(APIView):
             
             login(request, user)
             
-            return JsonResponse({
+            return Response({
                 "success": True,
                 "error_message": ""
             })
         except ValidationError as error:
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": serializers.validation_error_to_string(error)
             })
     
 # Class responsible for changing user's email address        
 class ChangeEmail(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request, *args, **kwargs):
-        if not request.user or not request.user.is_authenticated:
-            return HttpResponseForbidden("You need to be logged into an account to access this API.")
-
         serialzier = serializers.EmailChangeSerializer(data=request.data)
         
         if not serialzier.is_valid():
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": serializers.validation_errors_to_string(serialzier.errors)
             })
@@ -311,7 +300,7 @@ class ChangeEmail(APIView):
         validated = serialzier.validated_data
         
         if not request.user.check_password(validated.get("password")):
-            return JsonResponse({
+            return Response({
                 "success": False,
                 "error_message": "Invalid user password"
             })
@@ -319,7 +308,7 @@ class ChangeEmail(APIView):
         request.user.email = validated.get("email")
         request.user.save()
         
-        return JsonResponse({
+        return Response({
             "success": True,
             "error_message": ""
         })
