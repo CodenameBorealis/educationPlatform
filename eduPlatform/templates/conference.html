@@ -6,26 +6,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Meeting Interface</title>
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
     <link rel="stylesheet" href="{% static 'conference/css/main.css' %}">
-
-    {% csrf_token %}
 </head>
 
-<script>
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-</script>
-
 <body>
-    <div class="container">
-        <aside class="users">
-            <h3>Users</h3>
-            <div class="user">
-                <div class="profile-pic"></div>
-                <span>Admin</span>
+    {% csrf_token %}
+    <script>
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    </script>
+
+    <div class="overlay" id="connectionOverlay">
+        <div class="popup">
+            <h3>Select your connection type</h3>
+            <div>
+                <button class="selection-btn btn btn-lg" id="connectAudio">
+                    <img src="{% static 'conference/img/microphone.png' %}" alt="Microphone" class="icon">
+                    <span class="info">Video</span>
+                </button>
+                <button class="selection-btn btn btn-lg" id="connectMic">
+                    <img src="{% static 'conference/img/headphones.png' %}" alt="Headphones" class="icon">
+                    <span class="info">Listen</span>
+                </button>
             </div>
-        </aside>
+        </div>
+    </div>
+
+    <div class="overlay" id="textOverlay">
+        <div class="popup">
+            <h3 class="header">Oops, an error has occured.</h3>
+            <span class="bottom-text"></span>
+        </div>
+    </div>
+
+    <div class="camera-frame-container">
+        <div class="camera-frame d-flex align-items-center p-3 bg-dark rounded shadow-lg">
+            <div class="camera-preview me-3">
+                <video id="videoPreview" autoplay class="w-100 rounded border border-secondary"></video>
+            </div>
+            <button class="close-btn btn btn-danger btn-sm mb-2" id="close-camera-selector">&times;</button>
+            <div class="camera-controls ms-auto d-flex flex-column justify-content-between align-items-center">
+                <select id="cameraSelect" class="mb-2 btn">
+                </select>
+                <button id="start-camera-button" class="btn btn-success mt-2">Start Sharing</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <div class="users">
+            <div class="users-header">
+                <span>Users</span>
+            </div>
+            <div class="user-list">
+                <div class="user">
+                    <div class="profile-pic">
+                        <!-- <img src="{% static 'conference/img/mic_muted.png' %}" alt="" class="status-icon red"> -->
+                        <img src="{% static 'conference/img/headphones.png' %}" alt="" class="status-icon normal">
+                    </div>
+                    <span>
+                        Admin
+                    </span>
+                    <img src="{% static 'conference/img/crown.png' %}" alt="" class="host-icon">
+                </div>
+            </div>
+        </div>
 
         <main class="main-area">
             <div class="meeting-info">
@@ -34,11 +82,10 @@
 
             <div class="video-grid">
                 <div class="video-card">
-                    <div class="video">
-                        <div class="video-footer">
-                            <span>Admin</span>
-                            <div class="mute-icon"><img src="{% static 'conference/img/mic_muted.png' %}" alt=""></div>
-                        </div>
+                    <video class="video"></video>
+                    <div class="video-footer">
+                        <span class="username">Admin</span>
+                        <img src="{% static 'conference/img/mic_muted.png' %}" alt="" class="mute-icon">
                     </div>
                 </div>
             </div>
@@ -46,24 +93,68 @@
             <div class="presentation">
                 <p>No presentation loaded yet.</p>
             </div>
-        </main>
 
-        <aside class="chat">
-            <h3>Chat</h3>
-            <div class="chat-messages">
-                <div class="chat-message">
-                    <div class="profile-pic"></div>
-                    <div class="message-content">
-                        <span><strong>Admin</strong> <small>(13:02)</small></span>
-                        <p>Hello world!</p>
+            <div class="controls">
+                <div class="drop-up-container">
+                    <button class="btn-control" data-tooltip="Unmute">
+                        <img src="{% static 'conference/img/microphone.png' %}" alt="" class="icon">
+                    </button>
+
+                    <button class="drop-up-btn">
+                        <img src="{% static 'conference/img/up_arrow.png' %}" alt="" class="icon">
+                    </button>
+                    <div class="dropup-menu">
+                        <button class="dropup-item">Option 1</button>
+                        <button class="dropup-item">Option 2</button>
+                        <button class="dropup-item">Option 3</button>
                     </div>
                 </div>
-            </div>
-            <input type="text" placeholder="Type here to chat">
-        </aside>
-    </div>
 
-    <script src="script.js"></script>
+                <button class="btn-control" data-tooltip="Turn on camera">
+                    <img src="{% static 'conference/img/video-camera.png' %}" alt="" class="icon">
+                </button>
+
+                <button class="btn-control" data-tooltip="Share your screen">
+                    <img src="{% static 'conference/img/screenshare.png' %}" alt="" class="icon">
+                </button>
+            </div>
+        </main>
+
+        <div class="frame-container">
+            <div class="frame-header">
+                <span>Chat</span>
+            </div>
+            <div class="frame-body" id="chat-body">
+            </div>
+            <div class="frame-footer">
+                <input type="text" id="chat-input" class="form-control" placeholder="Type a message...">
+                <button id="send-btn" class="btn btn-primary">Send</button>
+            </div>
+        </div>
+    </div>
 </body>
+
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js"
+    integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
+    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+    crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
+    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+
+<script src="{% static 'common/js/requests.js' %}"></script>
+
+<script src="{% static 'conference/js/client/utils.js' %}"></script>
+<script src="{% static 'conference/js/client/permissions.js' %}"></script>
+<script src="{% static 'conference/js/client/microphone.js' %}"></script>
+<script src="{% static 'conference/js/client/camera.js' %}"></script>
+<script src="{% static 'conference/js/client/websocket.js' %}"></script>
+<script src="{% static 'conference/js/client/webrtc.js' %}"></script>
+<script src="{% static 'conference/js/client/screenshare.js' %}"></script>
+<script src="{% static 'conference/js/client/chat.js' %}"></script>
+
+<!-- <script src="{% static 'conference/js/html5client.js' %}"></script> -->
 
 </html>
