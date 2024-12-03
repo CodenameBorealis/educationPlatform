@@ -13,7 +13,7 @@ from .mixins import ConferencePermissionsMixin
 
 class Conference(View):
     def get(self, request, token, *args, **kwargs):
-        return render(request, "conference_test.html")
+        return render(request, "conference.html")
 
 
 class GetMessageHistory(APIView, ConferencePermissionsMixin):
