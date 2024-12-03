@@ -3,6 +3,7 @@ import rest_framework.status as status
 from django.shortcuts import render
 from django.views import View
 from django.core.cache import cache
+from django.shortcuts import redirect
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -13,6 +14,9 @@ from .mixins import ConferencePermissionsMixin
 
 class Conference(View):
     def get(self, request, token, *args, **kwargs):
+        if not request.user or not request.user.is_authenticated:
+            return redirect("home")
+        
         return render(request, "conference.html")
 
 
