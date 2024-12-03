@@ -1,8 +1,10 @@
 const logFrame = document.getElementById("logs");
 var userId, hostId, isHost
 
-const consoleBasedLogs = false
-const verboseLogsEnabled = true
+var consoleBasedLogs = false
+var verboseLogsEnabled = true
+
+var _text_overlay_shown = false
 
 function log(message, type = "LOG", is_verbose=true) {
     if (is_verbose && !verboseLogsEnabled) {
@@ -142,3 +144,42 @@ async function awaitMapEntry(map, key, timeout = 5000) {
         }
     });
 }
+
+function showTextOverlay(topText="", bottomText="") {
+    const overlay = document.getElementById("textOverlay")
+    const header = overlay.querySelector(".header")
+    const bottom = overlay.querySelector(".bottom-text")
+
+    header.innerHTML = topText
+    bottom.innerHTML = bottomText
+
+    if (!_text_overlay_shown) {
+        overlay.classList.add("active")
+        _text_overlay_shown = true
+    }
+}
+
+function hideTextOverlay() {
+    const overlay = document.getElementById("textOverlay")
+    overlay.classList.remove("active")
+
+    _text_overlay_shown = false
+}
+
+// Dropup menu
+document.addEventListener("DOMContentLoaded", () => {
+    const btnControl = document.querySelector(".drop-up-btn");
+    const dropupMenu = document.querySelector(".dropup-menu");
+
+    // Toggle the dropup menu
+    btnControl.addEventListener("click", () => {
+        dropupMenu.style.display = dropupMenu.style.display === "block" ? "none" : "block";
+    });
+
+    // Close the menu if clicked outside
+    document.addEventListener("click", (e) => {
+        if (!btnControl.contains(e.target)) {
+            dropupMenu.style.display = "none";
+        }
+    });
+});

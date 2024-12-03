@@ -32,7 +32,7 @@ async function onWebSocketRecieve(event) {
         if (isSharingScreen) {
             return
         }
-        
+
         await onWebsocketScreenshare(data["mediaId"], from)
     } else if (type == "stop-screenshare" && from != userId) {
         await onWebsockerStopScreenshare(from)
@@ -80,24 +80,11 @@ function onWebsocketOpen(event) {
         return
     }
 
-    log("Websocket connection established")
+    log("onWebsocketOpen is not implemented!", "warn")
+}
 
-    connectAudio.disabled = false
-    connectMic.disabled = false
-
-    connectAudio.addEventListener("click", () => {
-        connectAudio.disabled = true
-        connectMic.disabled = true
-
-        startWebRTC(true)
-    })
-
-    connectMic.addEventListener("click", () => {
-        connectAudio.disabled = true
-        connectMic.disabled = true
-
-        startWebRTC()
-    })
+function onWebsocketError(error) {
+    log("onWebsocketError is not implemented!", "warn")
 }
 
 function disconnectWebsocket() {
@@ -129,7 +116,7 @@ async function connectWebsocket(token) {
         try {
             onWebSocketRecieve(event)
         } catch (error) {
-            alert("An error occured while handling ws request!", error)
+            alert("An error occured while handling ws request!", error, false)
             document.location.reload()
         }
     }
@@ -139,8 +126,10 @@ async function connectWebsocket(token) {
     }
 
     ws.onerror = (error) => {
-        log("Websocket error (Check console for more)", "error")
+        log("Websocket error (Check console for more)", "error", false)
         console.log("Websocker error: ", error)
+
+        onWebsocketError(error)
     }
 
     currentToken = token
