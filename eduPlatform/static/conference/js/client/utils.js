@@ -84,6 +84,18 @@ async function getHostInfo(token) {
     isHost = hostId == userId
 }
 
+async function getUsernameFromID(id) {
+    const usernameRequest = await getHttpAsync(`/user/get_username/?user_id=${id}`)
+    const json = await usernameRequest.json()
+
+    if (!json["success"]) {
+        log("Failed to get username for the received message!")
+        return
+    }
+
+    return json["data"]["username"]
+}
+
 function removeStream(type, id) {
     const stream = document.getElementById(`${type}-${id}`)
 

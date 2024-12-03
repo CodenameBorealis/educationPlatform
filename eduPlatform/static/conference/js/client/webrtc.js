@@ -107,9 +107,9 @@ async function onPeerConnected(peer, remoteUserId) {
             areChangesMade = true
 
             ws.send(JSON.stringify({
-                "to": remoteUserId,
-                "type": "start-screenshare",
-                "mediaId": screenShareStream.id
+                to: remoteUserId,
+                type: "start-screenshare",
+                mediaId: screenShareStream.id
             }))
             
             peerAddScreenShareStream(peer, screenShareStream)
@@ -119,6 +119,12 @@ async function onPeerConnected(peer, remoteUserId) {
     if (areChangesMade) {
         await createOffer(remoteUserId)
     }
+
+    ws.send(JSON.stringify({
+        type: "toggle-microphone",
+        to: remoteUserId,
+        status: microphoneEnabled
+    }))
 }
 
 function onPeerCreation(peerConnection, remoteUserId) {
@@ -255,18 +261,7 @@ async function connectUser(remoteUserId, defaultMediaStreamId) {
 }
 
 async function onWebRTCStart() {
-    messageSendButton.disabled = false
-    loadMessageHistory()
-
-    await getHostInfo(currentToken)
-
-    if (isHost) {
-        loadAsHost()
-    }
-
-    if (!isListener) {
-        toggleMicrophone(false)
-    }
+    log("onWebRTCStart is not implemented.", "warn", false)
 }
 
 async function startWebRTC(is_listener = false) {
@@ -281,9 +276,6 @@ async function startWebRTC(is_listener = false) {
         if (!is_listener) {
             localStream = await navigator.mediaDevices.getUserMedia({ audio: true })
             await loadMicrophoneSelector()
-        } else {
-            toggleCam.disabled = true
-            toggleMic.disabled = true
         }
 
         ws.send(JSON.stringify({
@@ -295,7 +287,10 @@ async function startWebRTC(is_listener = false) {
 
         WebRTCStarted = true
         log("Started WebRTC")
+
+        return true
     } catch (error) {
         handleMediaError(error)
+        return false
     }
 } 

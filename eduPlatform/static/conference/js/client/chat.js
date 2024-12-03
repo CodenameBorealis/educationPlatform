@@ -1,3 +1,5 @@
+const messageInput = document.getElementById("chat-input")
+
 async function loadMessageHistory() {
     try {
         const history = await getHttpAsync(`/conference/api/get-message-history/?token=${currentToken}`)
@@ -70,16 +72,8 @@ function addChatMessage(username, user_id = -1, message, timestamp, noSound = fa
 
 async function onMessageReceive(data) {
     const { from, content, timestamp } = data
+    const username = await getUsernameFromID(from)
 
-    const usernameRequest = await getHttpAsync(`/user/get_username/?user_id=${from}`)
-    const json = await usernameRequest.json()
-
-    if (!json["success"]) {
-        log("Failed to get username for the received message!")
-        return
-    }
-
-    const username = json["data"]["username"]
     addChatMessage(username, from, content, timestamp)
 }
 

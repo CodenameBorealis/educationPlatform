@@ -1,4 +1,5 @@
 var ws
+var reconnectAttempts = 0
 
 async function onWebSocketRecieve(event) {
     if (!WebRTCStarted) {
@@ -36,6 +37,14 @@ async function onWebSocketRecieve(event) {
         await onWebsocketScreenshare(data["mediaId"], from)
     } else if (type == "stop-screenshare" && from != userId) {
         await onWebsockerStopScreenshare(from)
+    } else if (type == "toggle-microphone" && from != userId) {
+        const peer = peers[from]
+        if (!peer) {
+            return
+        }
+
+        peer.micEnabled = data["status"]
+        updateMicrophoneVisual(from, data["status"])
     }
 
     if (!to == userId) {
@@ -117,7 +126,6 @@ async function connectWebsocket(token) {
             onWebSocketRecieve(event)
         } catch (error) {
             alert("An error occured while handling ws request!", error, false)
-            document.location.reload()
         }
     }
 

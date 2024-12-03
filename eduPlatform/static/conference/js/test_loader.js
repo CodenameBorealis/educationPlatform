@@ -16,7 +16,6 @@ const toggleCam = document.getElementById("toggle-cam")
 const screenShareBtn = document.getElementById("screen-share")
 
 const messageSendButton = document.getElementById("send-btn")
-const messageInput = document.getElementById("chat-input")
 
 const cameraSelection = document.getElementById("cameraSelect")
 const micSelection = document.getElementById("micSelect")
@@ -66,22 +65,6 @@ async function bindPermissionListeners() {
             log("Microphone access denied, please ensure microphone access are granted to continue.", "error")
         }
     }
-}
-
-function addAudio(id, src) {
-    const existing = document.getElementById(`audio-${id}`)
-    if (existing) {
-        existing.remove()
-        existing.srcObject = null
-    }
-
-    const remoteAudio = document.createElement('audio')
-
-    remoteAudio.srcObject = src
-    remoteAudio.autoplay = true
-    remoteAudio.id = `audio-${id}`
-
-    document.getElementById("mics").appendChild(remoteAudio)
 }
 
 connectAudio.disabled = true
@@ -175,17 +158,4 @@ micSelection.addEventListener("change", (event) => {
 cameraSelection.addEventListener("change", (event) => {
     event.preventDefault()
     changeCameraSelection(event.target.value)
-})
-
-document.getElementById("close-camera-selector").addEventListener("click", () => {
-    closeCameraSelector()
-})
-
-document.getElementById("start-camera-button").addEventListener("click", () => {
-    if (!WebRTCStarted || cameraEnabled || !currentWebcamSelectedStream) {
-        return
-    }
-
-    turnCameraOn(currentWebcamSelectedStream)
-    closeCameraSelector(false)
 })

@@ -3,23 +3,42 @@ var cameraEnabled = false
 var currentWebcamSelectedStream, webcamTrack
 var cameraSelectorOpen = false
 
-function addVideo(id, src) {
+const toggleCam = document.getElementById("toggleCam")
+const videos = document.getElementById("videos")
+
+const cameraSelection = document.getElementById("cameraSelect")
+const videoPreview = document.getElementById("videoPreview")
+
+async function addVideo(id, src) {
     const existing = document.getElementById(`video-${id}`)
     if (existing) {
         existing.remove()
         existing.srcObject = null
     }
 
-    const remoteVideo = document.createElement('video')
+    const frame = document.createElement('div')
+    frame.id = `video-${id}`
+    frame.innerHTML = `
+    <div class="video-card">
+        <video class="video"></video>
+        <div class="video-footer">
+            <span class="username">${await getUsernameFromID(id)}</span>
+            <img src="/static/conference/img/mic_muted.png" alt="" class="mute-icon">
+        </div>
+    </div>
+    `
 
+    const remoteVideo = frame.querySelector(".video")
     remoteVideo.srcObject = src
     remoteVideo.autoplay = true
     remoteVideo.playsInline = true
     remoteVideo.muted = true
-    remoteVideo.id = `video-${id}`
-    remoteVideo.classList.add("video-frame")
 
-    document.getElementById("videos").appendChild(remoteVideo)
+    if (peers[id] && peers[id].micEnabled === true) {
+        frame.querySelector(".mute-icon").style.display = "none"
+    }
+    
+    videos.appendChild(frame)
 }
 
 function peerAddWebcam(remoteUserId, videoTrack, stream) {
@@ -66,6 +85,9 @@ async function turnCameraOff() {
         }))
     }
 
+    toggleCam.dataset.tooltip = "Turn camera on"
+    toggleCam.classList.remove("control-on")
+
     cameraEnabled = false
 }
 
@@ -80,7 +102,8 @@ async function turnCameraOn(videoStream) {
             toggleCam.disabled = false
         }, 2500)
 
-        toggleCam.innerHTML = "Turn camera off"
+        toggleCam.dataset.tooltip = "Turn camera off"
+        toggleCam.classList.add("control-on")
 
         const videoTrack = videoStream.getVideoTracks()[0]
         log("Using webcam: " + videoTrack.label)
@@ -107,6 +130,11 @@ async function turnCameraOn(videoStream) {
         for (const [id, peer] of Object.entries(peers)) {
             await peerRenegotiateWebcam(id, videoTrack, localStream)
         }
+        
+        ws.send(JSON.stringify({
+            type: "toggle-microphone",
+            status: microphoneEnabled
+        }))
 
         cameraEnabled = true
     } catch (error) {
@@ -174,7 +202,7 @@ async function changeCameraSelection(id) {
             currentWebcamSelectedStream.getTracks().forEach(track => track.stop())
         }
 
-        document.getElementById("videoPreview").srcObject = videoStream
+        videoPreview.srcObject = videoStream
         currentWebcamSelectedStream = videoStream
     } catch (error) {
         handleMediaError(error)
