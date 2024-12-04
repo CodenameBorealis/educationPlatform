@@ -6,5 +6,5 @@ urlpatterns = [
     
     # Api
     path("api/get-message-history/", views.GetMessageHistory.as_view()),
-    path("api/get-host/", views.GetConferenceHostID.as_view())
+    path("api/get-data/", views.GetConferenceHostID.as_view())
 ]
