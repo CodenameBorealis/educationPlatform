@@ -72,7 +72,7 @@ function connectEventListeners() {
 async function onWebRTCStart() {
     loadMessageHistory()
 
-    await getHostInfo(currentToken)
+    await getConferenceInfo(currentToken)
 
     // if (isHost) {
     //     loadAsHost()
