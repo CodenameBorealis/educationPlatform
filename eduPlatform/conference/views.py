@@ -41,8 +41,8 @@ class GetMessageHistory(APIView, ConferencePermissionsMixin):
 
 class GetConferenceData(APIView, ConferencePermissionsMixin):
     """
-    An API located at /conference/api/get-host/?token=<Conference token>
-    Just as simple as the previous one, but this one just retrieves and sends over the id of the conference host to the client
+    An API located at /conference/api/get-data/?token=<token>
+    Used for fetching information about the conference using a token as a reference.
     """
 
     def get(self, request, *args, **kwargs):
