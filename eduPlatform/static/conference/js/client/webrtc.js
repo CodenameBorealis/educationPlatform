@@ -7,6 +7,8 @@ var isListener = false
 var localStream
 
 var peers = {}
+var peerData = {}
+
 var candidateQueue = {}
 
 function disconnectUser(userId) {
@@ -18,12 +20,14 @@ function disconnectUser(userId) {
     removeStream("audio", userId)
     removeStream("video", userId)
 
+    removeUser(userId)
+
     log(`Closed peer connection with user-${userId}`)
 }
 
-async function handleOffer(offer, remoteUserId) {
+async function handleOffer(offer, remoteUserId, is_listener=false, default_media_id) {
     if (!peers[remoteUserId]) {
-        createPeerConnection(remoteUserId)
+        await createPeerConnection(remoteUserId)
     }
 
     const peer = peers[remoteUserId]
@@ -32,6 +36,11 @@ async function handleOffer(offer, remoteUserId) {
 
     const answer = await peer.createAnswer()
     await peer.setLocalDescription(answer)
+
+    peer.isListener = is_listener
+    if (!is_listener) {
+        await setPeerDefaultMediaStream(remoteUserId, default_media_id)
+    }
 
     ws.send(JSON.stringify({
         type: 'answer',
@@ -44,7 +53,7 @@ async function handleOffer(offer, remoteUserId) {
 
 async function createOffer(remoteUserId) {
     if (!peers[remoteUserId]) {
-        createPeerConnection(remoteUserId);
+        await createPeerConnection(remoteUserId);
     }
 
     const offer = await peers[remoteUserId].createOffer(isListener ? { offerToReceiveVideo: true, offerToReceiveAudio: true } : {})
@@ -53,6 +62,8 @@ async function createOffer(remoteUserId) {
     ws.send(JSON.stringify({
         type: 'offer',
         to: Number(remoteUserId),
+        is_listener: isListener,
+        default_media_id: !isListener ? localStream.id : null,
         offer
     }));
 
@@ -80,8 +91,8 @@ async function addIceCandidate(from, candidate) {
     peers[from].addIceCandidate(_candidate).then(() => {
         log("ICE candidate added")
     }).catch((error) => {
-        alert(error)
         log("Error adding ICE candidate", "error")
+        console.log("Error: ", error)
     })
 
 }
@@ -120,6 +131,8 @@ async function onPeerConnected(peer, remoteUserId) {
         await createOffer(remoteUserId)
     }
 
+    updateUserStatus(remoteUserId, peer.isListener ? "is-listener" : "is-muted")
+
     ws.send(JSON.stringify({
         type: "toggle-microphone",
         to: remoteUserId,
@@ -127,7 +140,7 @@ async function onPeerConnected(peer, remoteUserId) {
     }))
 }
 
-function onPeerCreation(peerConnection, remoteUserId) {
+async function onPeerCreation(peerConnection, remoteUserId) {
     if (candidateQueue[remoteUserId]) {
         candidateQueue[remoteUserId].forEach(candidate => addIceCandidate(remoteUserId, candidate));
         delete candidateQueue[remoteUserId];
@@ -143,9 +156,11 @@ function onPeerCreation(peerConnection, remoteUserId) {
             throw new Error("Track addition is not allowed in listener mode.")
         }
     }
+
+    await addUserToList(remoteUserId)
 }
 
-function createPeerConnection(remoteUserId) {
+async function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -202,7 +217,7 @@ function createPeerConnection(remoteUserId) {
         }
     }
 
-    onPeerCreation(peerConnection, remoteUserId)
+    await onPeerCreation(peerConnection, remoteUserId)
 
     peers[remoteUserId] = peerConnection
 
@@ -219,7 +234,7 @@ function createPeerConnection(remoteUserId) {
 
     peerConnection.onconnectionstatechange = () => {
         if (peerConnection.connectionState === "connected") {
-            onPeerConnected(peerConnection, remoteUserId)
+            onPeerConnected(peers[remoteUserId], remoteUserId)
         }
 
         log('Connection State: ' + peerConnection.connectionState);
@@ -229,6 +244,10 @@ function createPeerConnection(remoteUserId) {
 }
 
 function setPeerDefaultMediaStream(remoteUserId, id) {
+    if (!id) {
+        return
+    }
+
     const peer = peers[remoteUserId]
     if (!peer) {
         return
@@ -240,22 +259,16 @@ function setPeerDefaultMediaStream(remoteUserId, id) {
     log("Set default remote stream id for user " + remoteUserId + " to " + id)
 }
 
-async function connectUser(remoteUserId, defaultMediaStreamId) {
+async function connectUser(remoteUserId, defaultMediaStreamId, isListener=false) {
     log("Connecting user-" + remoteUserId)
 
     await createOffer(remoteUserId)
+    const peer = peers[remoteUserId]
 
-    if (!isListener) {
-        log("Sent default mediaStream id.")
-        ws.send(JSON.stringify({
-            to: remoteUserId,
-            type: "set_default_media",
-            id: localStream.id
-        }))
-    }
+    peer.streamMap.set("default_stream", defaultMediaStreamId)
+    peer.streamMap.onUpdate()
 
-    peers[remoteUserId].streamMap.set("default_stream", defaultMediaStreamId)
-    peers[remoteUserId].streamMap.onUpdate()
+    peer.isListener = isListener
 
     log("Set default stream id to " + defaultMediaStreamId)
 }
@@ -266,7 +279,9 @@ async function onWebRTCStart() {
 
 async function startWebRTC(is_listener = false) {
     if (!ws) {
-        alert("Cannot start WebRTC, websocket is not connected.")
+        log("Cannot start WebRTC, websocket is not connected.", "error")
+        showAlert("Error", "Connection with server was lost, please refresh the page to reconnect.", "error")
+
         return
     }
 
@@ -280,7 +295,8 @@ async function startWebRTC(is_listener = false) {
 
         ws.send(JSON.stringify({
             type: 'new-participant',
-            default_media: !isListener ? localStream.id : null
+            default_media: !isListener ? localStream.id : null,
+            is_listener: is_listener
         }));
 
         onWebRTCStart()

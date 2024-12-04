@@ -23,7 +23,7 @@ async function onWebSocketRecieve(event) {
         if (peers[from]) {
             disconnectUser(from)
         }
-        await connectUser(from, data["default_media"])
+        await connectUser(from, data["default_media"], data["is_listener"])
     } else if (type == "global-message") {
         if (from == userId) {
             return
@@ -39,7 +39,7 @@ async function onWebSocketRecieve(event) {
         await onWebsockerStopScreenshare(from)
     } else if (type == "toggle-microphone" && from != userId) {
         const peer = peers[from]
-        if (!peer) {
+        if (!peer || peer.isListener) {
             return
         }
 
@@ -54,13 +54,11 @@ async function onWebSocketRecieve(event) {
     // WebRTC calls
 
     if (type == "offer") {
-        await handleOffer(offer, from)
+        await handleOffer(offer, from, data["is_listener"], data["default_media_id"])
     } else if (type == "answer") {
         await peers[from].setRemoteDescription(new RTCSessionDescription(answer))
     } else if (type == "candidate") {
         await addIceCandidate(from, candidate)
-    } else if (type == "set_default_media") {
-        setPeerDefaultMediaStream(from, data["id"])
     }
 
     // Personal response calls
@@ -125,12 +123,17 @@ async function connectWebsocket(token) {
         try {
             onWebSocketRecieve(event)
         } catch (error) {
-            alert("An error occured while handling ws request!", error, false)
+            log("An error occured while handling ws request!", "error")
+            console.log(error)
         }
     }
 
     ws.onclose = (event) => {
         log(`WebSocket connection closed. Code: ${event.code}, reason: ${event.code != 1000 ? event.reason || "No reason given." : "Client initiated disconnect."}`, event.code != 1000 ? "warn" : "")
+        
+        if (event.code != 1000 && WebRTCStarted) {
+            showAlert("Error", "Connection with server is lost, please refresh your page to reconnect.", "error", 15000)
+        } 
     }
 
     ws.onerror = (error) => {

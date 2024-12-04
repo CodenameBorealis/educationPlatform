@@ -82,8 +82,13 @@ async function onWebRTCStart() {
         toggleMicrophone(false)
     }
 
+    document.getElementById("background-transition").style.display = "none"
+
     hideTextOverlay()
     connectEventListeners()
+
+    await addUserToList(userId)
+    updateUserStatus(userId, isListener ? "is-listener" : "is-muted")
 }
 
 async function connect(isListener) {

@@ -75,7 +75,7 @@ async function startScreenShare() {
     }
 
     if (!isHost) {
-        alert("You must be a host/co-host of this conference to share your screen.")
+        showAlert("Access denied.", "You must be a host/co-host of this conference to share your screen.", "error")
         return
     }
 
@@ -119,7 +119,7 @@ async function stopScreenShare() {
     }
 
     if (!screenShareSelf) {
-        alert("You can only stop the screenshare if you're the one who started it.")
+        showAlert("Access denied.", "You can only stop the screenshare if you're the one who started it.", "error")
         return
     }
 

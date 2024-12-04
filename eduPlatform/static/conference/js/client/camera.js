@@ -9,7 +9,7 @@ const videos = document.getElementById("videos")
 const cameraSelection = document.getElementById("cameraSelect")
 const videoPreview = document.getElementById("videoPreview")
 
-async function addVideo(id, src) {
+async function addVideo(id, src, micEnabled=false) {
     const existing = document.getElementById(`video-${id}`)
     if (existing) {
         existing.remove()
@@ -34,7 +34,7 @@ async function addVideo(id, src) {
     remoteVideo.playsInline = true
     remoteVideo.muted = true
 
-    if (peers[id] && peers[id].micEnabled === true) {
+    if ((peers[id] && peers[id].micEnabled === true) || micEnabled) {
         frame.querySelector(".mute-icon").style.display = "none"
     }
     
@@ -125,7 +125,7 @@ async function turnCameraOn(videoStream) {
             turnCameraOff()
         })
 
-        addVideo(userId, videoStream)
+        addVideo(userId, videoStream, microphoneEnabled)
 
         for (const [id, peer] of Object.entries(peers)) {
             await peerRenegotiateWebcam(id, videoTrack, localStream)

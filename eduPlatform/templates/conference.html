@@ -21,6 +21,10 @@
 
     <audio src="{% static 'conference/audio/MessageSent.mp3' %}" id="send-sound" src,preload="auto"></audio>
     <audio src="{% static 'conference/audio/MessageReceived.mp3' %}" id="receive-sound" src,preload="auto"></audio>
+    <audio src="{% static 'conference/audio/Error.mp3' %}" id="error-sound" src,preload="auto"></audio>
+
+    <div class="background-hide" id="background-transition"></div>
+    <div id="alert-container"></div>
 
     <div class="overlay" id="connectionOverlay">
         <div class="popup">
@@ -66,18 +70,7 @@
             <div class="users-header">
                 <span>Users</span>
             </div>
-            <div class="user-list">
-                <div class="user">
-                    <div class="profile-pic">
-                        <!-- <img src="{% static 'conference/img/mic_muted.png' %}" alt="" class="status-icon red"> -->
-                        <img src="{% static 'conference/img/headphones.png' %}" alt="" class="status-icon normal">
-                    </div>
-                    <span>
-                        Admin
-                    </span>
-                    <img src="{% static 'conference/img/crown.png' %}" alt="" class="host-icon">
-                </div>
-            </div>
+            <div class="user-list" id="user-list"></div>
         </div>
 
         <main class="main-area">
@@ -140,6 +133,8 @@
 <script src="{% static 'common/js/requests.js' %}"></script>
 
 <script src="{% static 'conference/js/client/utils.js' %}"></script>
+<script src="{% static 'conference/js/client/alerts.js' %}"></script>
+<script src="{% static 'conference/js/client/users.js' %}"></script>
 <script src="{% static 'conference/js/client/permissions.js' %}"></script>
 <script src="{% static 'conference/js/client/microphone.js' %}"></script>
 <script src="{% static 'conference/js/client/camera.js' %}"></script>

@@ -1,4 +1,3 @@
-const logFrame = document.getElementById("logs");
 var userId, hostId, isHost
 
 var consoleBasedLogs = false
@@ -39,19 +38,19 @@ function handleMediaError(error) {
     switch (error.name) {
         case 'NotAllowedError':
             console.error('Permission denied: User blocked camera/microphone.');
-            alert('You need to allow access to the respective resource to use this feature.');
+            showAlert('Error', 'You need to allow access to the respective resource to use this feature.', 'error');
             break;
         case 'NotFoundError':
             console.error('No media devices found.');
-            alert('No camera or microphone detected. Please connect one and try again.');
+            showAlert('Error', 'No camera or microphone detected. Please connect one and try again.', 'error');
             break;
         case 'OverconstrainedError':
             console.error('Constraints cannot be satisfied by available devices.');
-            alert('Requested media constraints are not supported.');
+            showAlert('Error', 'Requested media constraints are not supported.', 'error');
             break;
         default:
             console.error('Error:', error);
-            alert('An unknown error occurred while processing your request, check console for more.');
+            showAlert('Error', 'An unknown error occurred while processing your request, check console for more.', 'error');
     }
 }
 
@@ -93,7 +92,7 @@ async function getUsernameFromID(id) {
         return
     }
 
-    return json["data"]["username"]
+    return json["data"]["username"] || ""
 }
 
 function removeStream(type, id) {

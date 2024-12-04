@@ -29,6 +29,8 @@ function updateMicrophoneVisual(id, status) {
         const micIcon = videoFrame.querySelector(".mute-icon")
         micIcon.style.display = status ? "none" : "block"
     }
+
+    updateUserStatus(id, status ? "is-unmuted" : "is-muted")
 }
 
 async function changeMicrophone(deviceId) {
