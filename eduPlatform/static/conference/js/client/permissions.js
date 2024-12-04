@@ -25,24 +25,27 @@ function removeCoHost(remoteUserId) {
 }
 
 function loadAsCoHost() {
-    screenShareBtn.style.display = "block"
+    screenshareBtn.style.display = "block"
 
-    screenShareBtn.addEventListener("click", async () => {
+    screenshareBtn.addEventListener("click", async () => {
         if (!WebRTCStarted || (isSharingScreen && !screenShareSelf)) {
             return
         }
 
         if (screenShareSelf) { 
             await stopScreenShare()
-            screenShareBtn.innerHTML = "Screen share"
+
+            screenshareBtn.classList.remove("control-on")
+            screenshareBtn.dataset.tooltip = "Screen share"
 
             return
         }
 
         await startScreenShare()
-
+        
         if (screenShareSelf) {
-            screenShareBtn.innerHTML = "Stop sharing screen"
+            screenshareBtn.classList.add("control-on")
+            screenshareBtn.dataset.tooltip = "Stop sharing screen"
         }
     })
 
@@ -59,8 +62,8 @@ async function unloadCoHost() {
         await stopScreenShare()
     }
     
-    screenShareBtn.style.display = "none"
-    screenShareBtn.removeEventListener("click")
+    screenshareBtn.style.display = "none"
+    screenshareBtn.removeEventListener("click")
     
     isHost = false
     log("Unloaded host view")

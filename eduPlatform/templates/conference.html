@@ -75,12 +75,17 @@
 
         <main class="main-area">
             <div class="meeting-info">
-                <h2>Meeting Name</h2>
+                <h2 id="conference-name">Meeting Name</h2>
             </div>
 
             <div class="video-grid" id="videos"></div>
 
             <div class="presentation">
+                <div id="screenshare-frame">
+                    <span class="placeholder" id="screenshare-placeholder">User is currently sharing their screen.</span>
+                    <video id="screen-share-video" class="screenshare-video"></video>
+                    <audio id="screen-share-audio"></audio>
+                </div>
                 <p>No presentation loaded yet.</p>
             </div>
 
@@ -100,7 +105,7 @@
                     <img src="{% static 'conference/img/video-camera.png' %}" alt="" class="icon">
                 </button>
 
-                <button class="btn-control" data-tooltip="Share your screen" id="screenShare">
+                <button class="btn-control" data-tooltip="Share your screen" id="screenShare" style="display: none;">
                     <img src="{% static 'conference/img/screenshare.png' %}" alt="" class="icon">
                 </button>
             </div>

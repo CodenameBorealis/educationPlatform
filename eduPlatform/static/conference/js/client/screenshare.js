@@ -1,12 +1,18 @@
 var isSharingScreen, screenShareSelf, screenShareStream, screenShareMediaID
 
-var screenShareVideo = document.getElementById("screen-share-video")
-var screenShareAudio = document.getElementById("screen-share-audio")
+const screenShareVideo = document.getElementById("screen-share-video")
+const screenShareAudio = document.getElementById("screen-share-audio")
 
-function loadScreenShare(stream) {
+const screenshareFrame = document.getElementById("screenshare-frame")
+const screensharePlaceholder = document.getElementById("screenshare-placeholder")
+
+function loadScreenShare(stream, placeholder_name) {
     if (!isSharingScreen) {
         return
     }
+
+    screensharePlaceholder.innerHTML = `${placeholder_name} is currently sharing their screen.`
+    screenshareFrame.style.display = "flex"
 
     screenShareVideo.autoplay = true
     screenShareVideo.playsInline = true
@@ -23,6 +29,9 @@ function loadScreenShare(stream) {
 }
 
 function unloadScreenShare() {
+    screensharePlaceholder.innerHTML = ``
+    screenshareFrame.style.display = "none"
+
     screenShareVideo.srcObject = null
 
     screenShareAudio.muted = true
@@ -39,7 +48,7 @@ async function renegotiatePeerScreenShare(remoteUserId, stream) {
     await createOffer(remoteUserId)
 }
 
-function peerAddScreenShareStream(peer, stream) {   
+function peerAddScreenShareStream(peer, stream) {
     const audio = stream.getAudioTracks()[0]
     const video = stream.getVideoTracks()[0]
 
@@ -70,7 +79,7 @@ function peerRemoveScreenShareStream(peer) {
 }
 
 async function startScreenShare() {
-    if (!WebRTCStarted || isSharingScreen) {
+    if (!WebRTCStarted || isSharingScreen || isListener) {
         return
     }
 
@@ -135,6 +144,9 @@ async function stopScreenShare() {
 
         screenShareSelf = false
         isSharingScreen = false
+
+        screenshareBtn.classList.remove("control-on")
+        screenshareBtn.dataset.tooltip = "Screen share"
 
         ws.send(JSON.stringify({
             type: "stop-screenshare",

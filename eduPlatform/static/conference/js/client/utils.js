@@ -1,17 +1,17 @@
-var userId, hostId, isHost
+var userId, hostId, isHost, conferenceInfo
 
 var consoleBasedLogs = false
 var verboseLogsEnabled = true
 
 var _text_overlay_shown = false
 
-function log(message, type = "LOG", is_verbose=true) {
+function log(message, type = "LOG", is_verbose = true) {
     if (is_verbose && !verboseLogsEnabled) {
         return
     }
 
     const textContent = `[${new Date().toLocaleTimeString()}] - [${type.toUpperCase()}]: ${message}`;
-    
+
     if (consoleBasedLogs) {
         console.log(textContent);
         return;
@@ -66,12 +66,12 @@ async function getMyUserId() {
     userId = json["data"]["user_id"]
 }
 
-async function getHostInfo(token) {
+async function getConferenceInfo(token) {
     if (!userId) {
         getMyUserId()
     }
 
-    hostInfo = await getHttpAsync(`/conference/api/get-host/?token=${token}`)
+    hostInfo = await getHttpAsync(`/conference/api/get-data/?token=${token}`)
     json = await hostInfo.json()
 
     if (!json || json["success"] == false) {
@@ -81,6 +81,8 @@ async function getHostInfo(token) {
 
     hostId = json["host"]
     isHost = hostId == userId
+
+    conferenceInfo = json
 }
 
 async function getUsernameFromID(id) {
@@ -156,7 +158,7 @@ async function awaitMapEntry(map, key, timeout = 5000) {
     });
 }
 
-function showTextOverlay(topText="", bottomText="") {
+function showTextOverlay(topText = "", bottomText = "") {
     const overlay = document.getElementById("textOverlay")
     const header = overlay.querySelector(".header")
     const bottom = overlay.querySelector(".bottom-text")

@@ -73,10 +73,11 @@ async function onWebRTCStart() {
     loadMessageHistory()
 
     await getConferenceInfo(currentToken)
+    document.getElementById("conference-name").innerHTML = conferenceInfo["name"]
 
-    // if (isHost) {
-    //     loadAsHost()
-    // }
+    if (isHost) {
+        loadAsHost()
+    }
 
     if (!isListener) {
         toggleMicrophone(false)
