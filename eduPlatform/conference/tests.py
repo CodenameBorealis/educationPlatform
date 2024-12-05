@@ -254,9 +254,9 @@ class MessageHistoryTest(TestCase):
         self.assertEqual(request.status_code, 400, "Invalid status code given.")
 
 
-class GetHostIDTest(TestCase):
+class GetMeetingInfoTest(TestCase):
     def setUp(self):
-        self.mainURL = "/conference/api/get-host/"
+        self.mainURL = "/conference/api/get-data/"
 
         User = get_user_model()
         self.user = User.objects.create_testuser()
@@ -294,6 +294,9 @@ class GetHostIDTest(TestCase):
         self.assertTrue(json.get("success"), "JSON success is False.")
         self.assertEqual(
             json.get("host"), self.conference.host.id, "Invalid host ID given."
+        )
+        self.assertEqual(
+            json.get("name"), self.conference.name, "Invalid meeting name given."
         )
 
     def test_invalid(self):
