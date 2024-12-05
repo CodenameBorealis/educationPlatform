@@ -81,9 +81,10 @@ function connectEventListeners() {
 
 async function onWebRTCStart() {
     loadMessageHistory()
-
     await getConferenceInfo(currentToken)
+    
     document.getElementById("conference-name").innerHTML = conferenceInfo["name"]
+    document.getElementById("title").innerHTML = conferenceInfo["name"]
 
     if (isHost) {
         loadAsHost()
@@ -158,15 +159,15 @@ function onWebsocketError() {
     }
 }
 
-async function initializeConnection(token) {
+function initializeConnection(token) {
     if (!token || token === "") {
         log("Failed to find URL token.", "error", false)
         return
     }
 
     log("Initializing HTML5Client", "LOG", false)
-
     showTextOverlay("Connecting")
+
     connectWebsocket(match)
 }
 
