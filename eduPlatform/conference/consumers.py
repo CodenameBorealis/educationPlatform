@@ -106,9 +106,17 @@ class SignalingConsumer(AsyncWebsocketConsumer):
                     "to": self.user_id,
                 }
             )
-        
+
         if self.user_id in self.activeUsers:
             self.activeUsers.remove(self.user_id)
+
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "signaling_message",
+                "message": {"type": "disconnect", "from": self.user_id},
+            },
+        )
 
         # Remove user from the existing group channels
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
@@ -120,10 +128,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # An async function used as an override for 'add-cohost' signal type
 
         # Validate user permissions and check whether they are already a co-host
-        if (
-            data.get("from") != self.host_id
-            or data.get("to") in self.coHostList
-        ):
+        if data.get("from") != self.host_id or data.get("to") in self.coHostList:
             return
 
         # If user is not in the conference, ignore the request
@@ -145,10 +150,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # An async function used as an override for 'remove-cohost' signal type
 
         # Validate permissions and check whether they actually exist in the cohost set
-        if (
-            data.get("from") != self.host_id
-            or data.get("to") not in self.coHostList
-        ):
+        if data.get("from") != self.host_id or data.get("to") not in self.coHostList:
             return
 
         target = data.get("to")
@@ -204,10 +206,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # Async function used as an override for 'start-screenshare' signal type
 
         # Check user permissions (Don't worry about data.get("from"), it was set by the backend server in receive function)
-        if (
-            self.host_id != data.get("from")
-            and data.get("from") not in self.coHostList
-        ):
+        if self.host_id != data.get("from") and data.get("from") not in self.coHostList:
             return
 
         """
