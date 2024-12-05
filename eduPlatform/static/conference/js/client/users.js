@@ -12,6 +12,8 @@ async function addUserToList(userId) {
             <img src="/static/conference/img/mic_muted.png" alt="" class="status-icon red is-muted">
             <img src="/static/conference/img/microphone.png" alt="" class="status-icon normal is-unmuted">
             <img src="/static/conference/img/headphones.png" alt="" class="status-icon normal is-listener">
+            <img src="/static/conference/img/connection.png" alt="" class="status-icon red reconnecting">
+            <img src="/static/conference/img/disconnected.png" alt="" class="status-icon red failed">
         </div>
         <span>${username}</span>
         ${isHost ? `<img src="/static/conference/img/crown.png" alt="" class="host-icon">` : ''}
@@ -26,7 +28,9 @@ function updateUserStatus(userId, status) {
         return
     }
 
-    const possibleStates = ['is-muted', 'is-unmuted', 'is-listener']
+    const possibleStates = [
+        'is-muted', 'is-unmuted', 'is-listener', 'failed', 'reconnecting'
+    ]
     
     if (!possibleStates.includes(status)) {
         log(`Invalid user status given. (${status})`, "warn")
