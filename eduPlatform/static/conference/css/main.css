@@ -217,6 +217,29 @@ body {
     font-weight: bold;
     text-align: center;
     margin-bottom: 10px;
+    position: relative;
+}
+
+.users-close-btn {
+    position: absolute;
+    height: 30px;
+    width: 30px;
+    background: none;
+    border: none;
+    top: 25%;
+    right: 2%;
+    cursor: pointer;
+    display: none;
+}
+
+.users-close-btn img {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.users-close-btn:focus {
+    outline: none;
 }
 
 .user-list {
@@ -289,6 +312,7 @@ body {
 .meeting-info {
     text-align: center;
     margin-bottom: 10px;
+    position: relative;
 }
 
 .video-grid {
@@ -345,6 +369,38 @@ body {
     border-radius: 50%;
     background-color: red;
     box-sizing: content-box;
+}
+
+.open-button {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    top: 5%;
+    display: none;
+}
+
+.open-button:focus {
+    outline: none;
+}
+
+.open-button img {
+    width: 100%;
+    height: 100%;
+}
+
+#users-btn {
+    left: 15px;
+    width: 50px;
+}
+
+#chat-btn {
+    top: 15%;
+    right: 15px;
+    height: 30px;
+    width: 40px;
 }
 
 /* Presentation Area */
@@ -576,6 +632,29 @@ body {
     padding: 15px;
     font-weight: bold;
     text-align: center;
+    position: relative;
+}
+
+.frame-close-btn {
+    position: absolute;
+    height: 30px;
+    width: 30px;
+    background: none;
+    border: none;
+    top: 25%;
+    left: 1%;
+    cursor: pointer;
+    display: none;
+}
+
+.frame-close-btn img {
+    width: 100%;
+    height: 100%;
+    transform: rotate(90deg);
+}
+
+.frame-close-btn:focus {
+    outline: none;
 }
 
 .frame-body {
@@ -596,7 +675,7 @@ body {
     max-width: 75%;
 }
 
-.message h {
+.message p {
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -655,6 +734,12 @@ body {
     cursor: pointer;
     margin-left: 10px;
     font-size: 14px !important;
+    position: relative;
+    width: 14%;
+    background-image: url("/static/conference/img/send.png") !important;
+    background-size: 70%;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 .frame-footer button:hover {
@@ -746,20 +831,47 @@ body {
         top: 0;
         width: 300px;
         display: none;
+        z-index: 5;
+    }
+    
+    .frame-close-btn {
+        display: block;
+    }
+
+    .users-close-btn {
+        display: block;
     }
 
     .users {
-        z-index: 5;
         height: 100%;
         position: fixed;
         left: 0;
         top: 0;
         width: 250px;
         display: none;
+        z-index: 5;
+    }
+
+    .open-button {
+        display: block;
     }
 }
 
 @media (max-width: 425px) {
+    .frame-container {
+        position: absolute;
+        width: 100%;
+        display: none;
+        z-index: 5;
+    }
+
+    .users {
+        position: fixed;
+        height: 100%;
+        width: 100%;
+        z-index: 5;
+    }
+
     .popup .selection-btn {
         width: 100px;
         height: 100px;

@@ -68,6 +68,9 @@
     <div class="main-container">
         <div class="users">
             <div class="users-header">
+                <button class="users-close-btn">
+                    <img src="{% static 'conference/img/up_arrow.png' %}" alt="Close">
+                </button>
                 <span>Users</span>
             </div>
             <div class="user-list" id="user-list"></div>
@@ -75,6 +78,12 @@
 
         <main class="main-area">
             <div class="meeting-info">
+                <button class="open-button" id="users-btn">
+                    <img src="{% static 'conference/img/users.png' %}" alt="Users">
+                </button>
+                <button class="open-button" id="chat-btn">
+                    <img src="{% static 'conference/img/chat.png' %}" alt="Users">
+                </button>
                 <h2 id="conference-name">Meeting Name</h2>
             </div>
 
@@ -82,7 +91,6 @@
 
             <div class="presentation">
                 <div id="screenshare-frame">
-                    <span class="placeholder" id="screenshare-placeholder">User is currently sharing their screen.</span>
                     <video id="screen-share-video" class="screenshare-video"></video>
                     <audio id="screen-share-audio"></audio>
                 </div>
@@ -113,13 +121,16 @@
 
         <div class="frame-container">
             <div class="frame-header">
+                <button class="frame-close-btn">
+                    <img src="{% static 'conference/img/up_arrow.png' %}" alt="Close">
+                </button>
                 <span>Chat</span>
             </div>
             <div class="frame-body" id="chat-body">
             </div>
             <div class="frame-footer">
                 <input type="text" id="chat-input" class="form-control" placeholder="Type a message...">
-                <button id="send-btn" class="btn btn-primary">Send</button>
+                <button id="send-btn" class="btn btn-primary"></button>
             </div>
         </div>
     </div>

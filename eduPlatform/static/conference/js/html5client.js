@@ -7,10 +7,20 @@ const screenshareBtn = document.getElementById("screenShare")
 const closeCameraSelectorBtn = document.getElementById("close-camera-selector")
 const openCameraSelectorBtn = document.getElementById("start-camera-button")
 
+const chatFrame = document.querySelector(".frame-container")
+const chatCloseBtn = document.querySelector(".frame-close-btn")
+const chatOpenBtn = document.getElementById("chat-btn")
 const messageSendButton = document.getElementById("send-btn")
+
+const usersFrame = document.querySelector(".users")
+const usersOpenBtn = document.getElementById("users-btn")
+const usersCloseBtn = document.querySelector(".users-close-btn")
 
 const path = window.location.pathname
 const match = path.match(/\/conference\/web\/([^\/]+)/)[1]
+
+var usersOpen = false
+var chatOpen = false
 
 var websocketConnected = false
 
@@ -162,3 +172,39 @@ async function initializeConnection(token) {
 
 consoleBasedLogs = true
 initializeConnection(match)
+
+chatOpenBtn.addEventListener("click", () => {
+    if (chatOpen) {
+        return
+    }
+
+    chatOpen = true
+    chatFrame.style.display = "flex"
+})
+
+chatCloseBtn.addEventListener("click", () => {
+    if (!chatOpen) {
+        return
+    }
+
+    chatOpen = false
+    chatFrame.style.display = "none"
+})
+
+usersOpenBtn.addEventListener("click", () => {
+    if (usersOpen) {
+        return
+    }
+
+    usersOpen = true
+    usersFrame.style.display = "block"
+})
+
+usersCloseBtn.addEventListener("click", () => {
+    if (!usersOpen) {
+        return
+    }
+
+    usersOpen = false
+    usersFrame.style.display = "none"
+})
