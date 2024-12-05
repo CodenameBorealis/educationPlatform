@@ -166,7 +166,7 @@ function onConnectionFailure(peer, remoteUserId) {
     showAlert("Error", `Failed to establish a connection with user ${remoteUserId}, please try re-joining the conference, if this issue persists, contact technical support.`, "error", 10000)
     updateUserStatus(remoteUserId, "failed")
 
-    peer.connected = false
+    peer.failed = true
 }
 
 function onDisconnected(peer, remoteUserId) {
@@ -216,6 +216,7 @@ async function createPeerConnection(remoteUserId) {
     
     peerConnection.streamMap = new Map()
     peerConnection.streamMap.onUpdate = () => {}
+    peerConnection.failed = false
 
     peerConnection.onicecandidate = (event) => {
         if (event.candidate) {

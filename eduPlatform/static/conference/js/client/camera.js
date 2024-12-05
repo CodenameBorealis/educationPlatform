@@ -10,7 +10,7 @@ const cameraSelection = document.getElementById("cameraSelect")
 const videoPreview = document.getElementById("videoPreview")
 
 async function addVideo(id, src, micEnabled=false) {
-    if (id != userId && (!peers[id] || !peers[id].connected)) {
+    if (id !== userId && peers[id].failed) {
         return
     }
 
