@@ -596,6 +596,11 @@ body {
     max-width: 75%;
 }
 
+.message h {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .received {
     background-color: #3a3a3a;
     color: #f1f1f1;

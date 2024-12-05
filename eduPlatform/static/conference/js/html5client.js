@@ -62,7 +62,7 @@ function connectEventListeners() {
     })
 
     messageInput.addEventListener("keydown", (event) => {
-        if (event.key !== "enter") {
+        if (event.key !== "Enter") {
             return
         }
         sendChatMessage()
