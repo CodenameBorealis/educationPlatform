@@ -1,84 +1,104 @@
 var ws
 var reconnectAttempts = 0
 
-async function onWebSocketRecieve(event) {
-    if (!WebRTCStarted) {
-        return
+async function handleGlobalSignaling(type, from, data) {
+    const handlers = {
+        "new-participant": async () => {
+            if (peers[from]) disconnectUser(from);
+            await connectUser(from, data.default_media, data.is_listener);
+        },
+        "global-message": async () => {
+            await onMessageReceive(data);
+        },
+        "start-screenshare": async () => {
+            if (!isSharingScreen) {
+                await onWebsocketScreenshare(data.mediaId, from);
+            }
+        },
+        "stop-screenshare": async () => {
+            await onWebsockerStopScreenshare(from);
+        },
+        "toggle-microphone": async () => {
+            const peer = peers[from];
+            if (peer && !peer.isListener) {
+                peer.micEnabled = data.status;
+                updateMicrophoneVisual(from, data.status);
+            }
+        },
     }
 
-    const data = JSON.parse(event.data)
-    const { type, from, to, offer, answer, candidate } = data
-
-    if (to) {
-        if (to === userId) {
-            log("Got personal WebSocket response - " + type)
-        }
-    } else {
-        log("Got global WebSocket response - " + type)
-    }
-
-    // Global signaling calls
-
-    if (type == "new-participant" && from != userId) {
-        if (peers[from]) {
-            disconnectUser(from)
-        }
-        await connectUser(from, data["default_media"], data["is_listener"])
-    } else if (type == "global-message") {
+    if (handlers[type]) {
         if (from == userId) {
             return
         }
-        await onMessageReceive(data)
-    } else if (type == "start-screenshare" && from != userId) {
-        if (isSharingScreen) {
-            return
-        }
 
-        await onWebsocketScreenshare(data["mediaId"], from)
-    } else if (type == "stop-screenshare" && from != userId) {
-        await onWebsockerStopScreenshare(from)
-    } else if (type == "toggle-microphone" && from != userId) {
-        const peer = peers[from]
-        if (!peer || peer.isListener) {
-            return
-        }
+        await handlers[type]()
+    } else {
+        log(`Unresolved global signaling type: ${type}`, "warn")
+    }
+}
 
-        peer.micEnabled = data["status"]
-        updateMicrophoneVisual(from, data["status"])
+async function handlePersonalSignaling(type, from, data) {
+    const handlers = {
+        offer: async () => {
+            await handleOffer(data.offer, from, data.is_listener, data.default_media_id);
+        },
+        answer: async () => {
+            await peers[from]?.setRemoteDescription(new RTCSessionDescription(data.answer));
+        },
+        candidate: async () => {
+            await addIceCandidate(from, data.candidate);
+        },
+        webcam_start: async () => {
+            const track = await waitForTrack(peers[from], data.id);
+            if (track) {
+                addVideo(from, new MediaStream([track]));
+            } else {
+                log(`Track ID not found: ${data.id}`, "warn");
+            }
+        },
+        webcam_stop: async () => {
+            removeStream("video", from);
+        },
+        "add-cohost": async () => {
+            loadAsCoHost();
+        },
+        "remove-cohost": async () => {
+            await unloadCoHost();
+        },
     }
 
-    if (!to == userId) {
+    if (handlers[type]) {
+        handlers[type]()
+    } else {
+        log(`Unresolved personal signaling type: ${type}`, "warn")
+    }
+}
+
+async function onWebSocketRecieve(event) {
+    if (!WebRTCStarted) return;
+
+    const data = JSON.parse(event.data)
+    const { type, from, to } = data;
+
+    const isGlobal = !to;
+    const isTargeted = to === userId;
+
+    if (isGlobal) {
+        log(`Got global websocket response - ${type}`)
+    } else if (isTargeted) {
+        log(`Got personal websocket response - ${type}`)
+    } else {
         return
     }
 
-    // WebRTC calls
-
-    if (type == "offer") {
-        await handleOffer(offer, from, data["is_listener"], data["default_media_id"])
-    } else if (type == "answer") {
-        await peers[from].setRemoteDescription(new RTCSessionDescription(answer))
-    } else if (type == "candidate") {
-        await addIceCandidate(from, candidate)
+    if (isGlobal) {
+        await handleGlobalSignaling(type, from, data)
+        return
     }
 
-    // Personal response calls
-
-    if (type == "webcam_start") {
-        log("Track ID: " + data["id"])
-
-        const track = await waitForTrack(peers[from], data["id"])
-        if (!track) {
-            log("Track ID not found in track map.", "warn")
-            return
-        }
-
-        addVideo(from, new MediaStream([track]))
-    } else if (type == "webcam_stop") {
-        removeStream("video", from)
-    } else if (type == "add-cohost") {
-        loadAsCoHost()
-    } else if (type == "remove-cohost") {
-        await unloadCoHost()
+    if (isTargeted) {
+        await handlePersonalSignaling(type, from, data)
     }
 }
 
@@ -109,7 +129,7 @@ function disconnectWebsocket() {
     removeStream("video", userId)
 
     disconnectBtn.disabled = true
-    log("Disconnected")
+    log("Websocket was disconnected manually.", "warn", false)
 }
 
 async function connectWebsocket(token) {
@@ -123,17 +143,17 @@ async function connectWebsocket(token) {
         try {
             onWebSocketRecieve(event)
         } catch (error) {
-            log("An error occured while handling ws request!", "error")
+            log("An error occured while handling ws request!", "error", false)
             console.log(error)
         }
     }
 
     ws.onclose = (event) => {
-        log(`WebSocket connection closed. Code: ${event.code}, reason: ${event.code != 1000 ? event.reason || "No reason given." : "Client initiated disconnect."}`, event.code != 1000 ? "warn" : "")
-        
+        log(`WebSocket connection closed. Code: ${event.code}, reason: ${event.code != 1000 ? event.reason || "No reason given." : "Client initiated disconnect."}`, event.code != 1000 ? "warn" : "", false)
+
         if (event.code != 1000 && WebRTCStarted) {
             showAlert("Error", "Connection with server is lost, please refresh your page to reconnect.", "error", 15000)
-        } 
+        }
     }
 
     ws.onerror = (error) => {
