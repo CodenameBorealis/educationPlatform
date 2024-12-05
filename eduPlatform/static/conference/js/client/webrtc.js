@@ -162,14 +162,25 @@ async function onPeerCreation(peerConnection, remoteUserId) {
     await addUserToList(remoteUserId)
 }
 
+function onConnectionFailure(peer, remoteUserId) {
+    showAlert("Error", `Failed to establish a connection with user ${remoteUserId}, please try re-joining the conference, if this issue persists, contact technical support.`, "error", 10000)
+    updateUserStatus(remoteUserId, "failed")
+
+    peer.connected = false
+}
+
+function onDisconnected(peer, remoteUserId) {
+    log(`ICE connection for user ${remoteUserId} is unstable, monitoring.`, "warn", false)
+    updateUserStatus(remoteUserId, "reconnecting")
+}
+
 function onICEConnectionChange(remoteUserId, peer, state) {
     switch (state) {
         case "failed":
-            log(`ICE connection for user ${remoteUserId} has failed.`, "error", false)
+            onConnectionFailure(peer, remoteUserId)
             break
         case "disconnected":
-            log(`ICE connection for user ${remoteUserId} is unstable, monitoring.`, "warn", false)
-            updateUserStatus(remoteUserId, "reconnecting")
+            onDisconnected(peer, remoteUserId)
             break
     }
 }
@@ -181,10 +192,10 @@ function onConnectionChange(remoteUserId, peer, state) {
             log(`Established connection with user ${remoteUserId} successfully.`)
             break
         case "failed":
-            showAlert("Error", `Failed to establish a connection with user ${remoteUserId}, please try re-joining the conference, if this issue persists, contact technical support.`, "error", 10000)
-            updateUserStatus(remoteUserId, "failed")
-
-            peer.connected = false
+            onConnectionFailure(peer, remoteUserId)
+            break
+        case "disconnected":
+            onDisconnected(peer, remoteUserId)
             break
     }
 }
