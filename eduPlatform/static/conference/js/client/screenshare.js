@@ -4,14 +4,12 @@ const screenShareVideo = document.getElementById("screen-share-video")
 const screenShareAudio = document.getElementById("screen-share-audio")
 
 const screenshareFrame = document.getElementById("screenshare-frame")
-const screensharePlaceholder = document.getElementById("screenshare-placeholder")
 
 function loadScreenShare(stream, placeholder_name) {
     if (!isSharingScreen) {
         return
     }
 
-    screensharePlaceholder.innerHTML = `${placeholder_name} is currently sharing their screen.`
     screenshareFrame.style.display = "flex"
 
     screenShareVideo.autoplay = true
