@@ -20,11 +20,17 @@ async function handleGlobalSignaling(type, from, data) {
         },
         "toggle-microphone": async () => {
             const peer = peers[from];
-            if (peer && !peer.isListener) {
+            if (peer && !peer.isListener && peer.connected) {
                 peer.micEnabled = data.status;
                 updateMicrophoneVisual(from, data.status);
             }
         },
+        "disconnect": async () => {
+            if (!peers[from]) {
+                return
+            }
+            disconnectUser(from)
+        }
     }
 
     if (handlers[type]) {
@@ -34,7 +40,7 @@ async function handleGlobalSignaling(type, from, data) {
 
         await handlers[type]()
     } else {
-        log(`Unresolved global signaling type: ${type}`, "warn")
+        log(`Unresolved signaling type: ${type}`, "warn")
     }
 }
 
@@ -69,9 +75,9 @@ async function handlePersonalSignaling(type, from, data) {
     }
 
     if (handlers[type]) {
-        handlers[type]()
+        await handlers[type]()
     } else {
-        log(`Unresolved personal signaling type: ${type}`, "warn")
+        await handleGlobalSignaling(type, from, data)
     }
 }
 
@@ -92,13 +98,14 @@ async function onWebSocketRecieve(event) {
         return
     }
 
-    if (isGlobal) {
-        await handleGlobalSignaling(type, from, data)
+    if (isTargeted) {
+        await handlePersonalSignaling(type, from, data)
         return
     }
 
-    if (isTargeted) {
-        await handlePersonalSignaling(type, from, data)
+    if (isGlobal) {
+        await handleGlobalSignaling(type, from, data)
+        return
     }
 }
 

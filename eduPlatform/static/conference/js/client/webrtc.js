@@ -22,7 +22,7 @@ function disconnectUser(userId) {
 
     removeUser(userId)
 
-    log(`Closed peer connection with user-${userId}`)
+    log(`Closed peer connection with user-${userId}`, "LOG", false)
 }
 
 async function handleOffer(offer, remoteUserId, is_listener=false, default_media_id) {
@@ -98,6 +98,8 @@ async function addIceCandidate(from, candidate) {
 }
 
 async function onPeerConnected(peer, remoteUserId) {
+    peer.connected = true
+
     log("Running initial sync after connection.")
 
     var areChangesMade = false
@@ -160,6 +162,33 @@ async function onPeerCreation(peerConnection, remoteUserId) {
     await addUserToList(remoteUserId)
 }
 
+function onICEConnectionChange(remoteUserId, peer, state) {
+    switch (state) {
+        case "failed":
+            log(`ICE connection for user ${remoteUserId} has failed.`, "error", false)
+            break
+        case "disconnected":
+            log(`ICE connection for user ${remoteUserId} is unstable, monitoring.`, "warn", false)
+            updateUserStatus(remoteUserId, "reconnecting")
+            break
+    }
+}
+
+function onConnectionChange(remoteUserId, peer, state) {
+    switch (state) {
+        case "connected":
+            onPeerConnected(peers[remoteUserId], remoteUserId)
+            log(`Established connection with user ${remoteUserId} successfully.`)
+            break
+        case "failed":
+            showAlert("Error", `Failed to establish a connection with user ${remoteUserId}, please try re-joining the conference, if this issue persists, contact technical support.`, "error", 10000)
+            updateUserStatus(remoteUserId, "failed")
+
+            peer.connected = false
+            break
+    }
+}
+
 async function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
@@ -212,7 +241,7 @@ async function createPeerConnection(remoteUserId) {
                 }
             }
         } catch (error) {
-            log("Failed to process onTrack, check console for errors.", "error")
+            log("Failed to process onTrack, check console for errors.", "error", false)
             console.log(error)
         }
     }
@@ -223,21 +252,16 @@ async function createPeerConnection(remoteUserId) {
 
     peerConnection.oniceconnectionstatechange = () => {
         const state = peerConnection.iceConnectionState;
-        log(`User-${remoteUserId} - ICE Connection State: ${state}`, state === "failed" || state === "disconnected" ? "error" : "");
-
-        if (state === 'disconnected' || state === 'failed' || state === 'closed') {
-            disconnectUser(remoteUserId)
-        } else if (state === 'connected') {
-            peers[remoteUserId].connected = true
-        }
+        
+        log(`User-${remoteUserId} - ICE Connection State: ${state}`, state === "failed" || state === "disconnected" ? "warn" : "", false);
+        onICEConnectionChange(remoteUserId, peerConnection, state)
     };
 
     peerConnection.onconnectionstatechange = () => {
-        if (peerConnection.connectionState === "connected") {
-            onPeerConnected(peers[remoteUserId], remoteUserId)
-        }
+        const state = peerConnection.connectionState
+        log(`User-${remoteUserId} - Connection State: ${state}`, state === "disconnected" ? "warn" : "", false)
 
-        log('Connection State: ' + peerConnection.connectionState);
+        onConnectionChange(remoteUserId, peerConnection, state)
     };
 
     log("Made peer connection")
@@ -260,7 +284,7 @@ function setPeerDefaultMediaStream(remoteUserId, id) {
 }
 
 async function connectUser(remoteUserId, defaultMediaStreamId, isListener=false) {
-    log("Connecting user-" + remoteUserId)
+    log("Connecting user-" + remoteUserId, "LOG", false)
 
     await createOffer(remoteUserId)
     const peer = peers[remoteUserId]
@@ -302,7 +326,7 @@ async function startWebRTC(is_listener = false) {
         onWebRTCStart()
 
         WebRTCStarted = true
-        log("Started WebRTC")
+        log("Started WebRTC", "LOG", false)
 
         return true
     } catch (error) {
