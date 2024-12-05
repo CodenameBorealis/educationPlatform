@@ -62,7 +62,7 @@ async function changeMicrophone(deviceId) {
                     log("Successfully changed microphone track")
                 })
                 .catch(error => {
-                    log("Failed to replace microphone track, check console for errors.", "error")
+                    log("Failed to replace microphone track, check console for errors.", "error", false)
                 })
         }
 

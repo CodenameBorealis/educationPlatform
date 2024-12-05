@@ -26,6 +26,8 @@ async function loadMessageHistory() {
 
             addChatMessage(username, user_id, content, timestamp, true)
         }
+
+        log("Loaded message history.", "LOG", false)
     } catch (error) {
         log("Failed to load message history, please check console for more.", "error")
         console.log(error)
@@ -96,7 +98,7 @@ function sendChatMessage(content) {
             content: message
         }))
     } catch (error) {
-        log("Failed to send message through the websocket, check console for more info.", "error")
+        log("Failed to send message through the websocket, check console for more info.", "error", false)
         console.log(error)
     }
 }

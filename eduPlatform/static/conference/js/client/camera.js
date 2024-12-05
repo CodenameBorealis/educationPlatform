@@ -10,6 +10,10 @@ const cameraSelection = document.getElementById("cameraSelect")
 const videoPreview = document.getElementById("videoPreview")
 
 async function addVideo(id, src, micEnabled=false) {
+    if (!peers[id] || !peers[id].connected) {
+        return
+    }
+
     const existing = document.getElementById(`video-${id}`)
     if (existing) {
         existing.remove()

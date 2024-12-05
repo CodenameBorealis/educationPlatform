@@ -8,7 +8,7 @@ function addCoHost(remoteUserId) {
         "type": "add-cohost",
     }))
 
-    log(`Request to add user ${remoteUserId} as a co-host was sent`)
+    log(`Request to add user ${remoteUserId} as a co-host was sent`, "LOG", false)
 }
 
 function removeCoHost(remoteUserId) {
@@ -21,7 +21,7 @@ function removeCoHost(remoteUserId) {
         "type": "remove-cohost"
     }))
 
-    log(`Request to remove user ${remoteUserId} from the co-host list was sent`)
+    log(`Request to remove user ${remoteUserId} from the co-host list was sent`, "LOG", false)
 }
 
 function loadAsCoHost() {

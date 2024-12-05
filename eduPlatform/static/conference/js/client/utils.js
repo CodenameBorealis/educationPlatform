@@ -1,13 +1,17 @@
 var userId, hostId, isHost, conferenceInfo
 
-var consoleBasedLogs = false
-var verboseLogsEnabled = true
+var consoleBasedLogs = true
+var verboseLogsEnabled = false
 
 var _text_overlay_shown = false
 
 function log(message, type = "LOG", is_verbose = true) {
     if (is_verbose && !verboseLogsEnabled) {
         return
+    }
+
+    if (type === "") {
+        type = "LOG"
     }
 
     const textContent = `[${new Date().toLocaleTimeString()}] - [${type.toUpperCase()}]: ${message}`;

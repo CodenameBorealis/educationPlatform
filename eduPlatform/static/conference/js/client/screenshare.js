@@ -27,7 +27,6 @@ function loadScreenShare(stream, placeholder_name) {
 }
 
 function unloadScreenShare() {
-    screensharePlaceholder.innerHTML = ``
     screenshareFrame.style.display = "none"
 
     screenShareVideo.srcObject = null
@@ -51,7 +50,7 @@ function peerAddScreenShareStream(peer, stream) {
     const video = stream.getVideoTracks()[0]
 
     if (!video) {
-        log("Did not add sharescreen stream to peer connection: video track is not present.", "warn")
+        log("Did not add sharescreen stream to peer connection: video track is not present.", "warn", false)
         return
     }
 
@@ -153,7 +152,7 @@ async function stopScreenShare() {
         unloadScreenShare()
         screenShareStream = null
     } catch (error) {
-        log("An error occured while trying to stop screenshare, check console for more info.", "error")
+        log("An error occured while trying to stop screenshare, check console for more info.", "error", false)
     }
 }
 
@@ -166,7 +165,7 @@ async function onWebsocketScreenshare(mediaId, userId) {
 
     const peer = peers[userId]
     if (!peer) {
-        log("Failed to find a peer for screenshare userId", "error")
+        log("Failed to find a peer for screenshare userId", "error", false)
         return
     }
 
@@ -185,7 +184,7 @@ async function onWebsockerStopScreenshare(userId) {
 
     const peer = peers[userId]
     if (!peer) {
-        log("Failed to find a peer for screenshare userId", "error")
+        log("Failed to find a peer for screenshare userId", "error", false)
         return
     }
 
