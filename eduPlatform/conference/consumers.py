@@ -284,3 +284,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         # Async function used for "json'ifying the data and sending it to the client"
         message = event.get("message")
         await self.send(text_data=json.dumps(message))
+
+    async def end_conference(self, event):
+        # Async function responsible for disconnecting the user when the conference ends
+        await self.close()
