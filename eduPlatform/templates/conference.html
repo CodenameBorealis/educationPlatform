@@ -21,9 +21,13 @@
         const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     </script>
 
-    <audio src="{% static 'conference/audio/MessageSent.mp3' %}" id="send-sound" src,preload="auto"></audio>
-    <audio src="{% static 'conference/audio/MessageReceived.mp3' %}" id="receive-sound" src,preload="auto"></audio>
-    <audio src="{% static 'conference/audio/Error.mp3' %}" id="error-sound" src,preload="auto"></audio>
+    <div class="audios">
+        <audio src="{% static 'conference/audio/MessageSent.mp3' %}" id="send-sound" src,preload="auto"></audio>
+        <audio src="{% static 'conference/audio/MessageReceived.mp3' %}" id="receive-sound" src,preload="auto"></audio>
+        <audio src="{% static 'conference/audio/Error.mp3' %}" id="error-sound" src,preload="auto"></audio>
+        <audio src="{% static 'conference/audio/ConferenceStart.mp3' %}" id="start-sound" src,preload="auto"></audio>
+        <audio src="{% static 'conference/audio/ConferenceEnd.mp3' %}" id="end-sound" src,preload="auto"></audio>
+    </div>
 
     <div class="background-hide" id="background-transition"></div>
     <div id="alert-container"></div>
@@ -48,6 +52,15 @@
         <div class="popup">
             <h3 class="header">Oops, an error has occured.</h3>
             <span class="bottom-text"></span>
+            <div class="waiting-host">
+                <img src="/user/get_pfp/?user_id=-1" alt="">
+                <span>Waiting for the host to start the conference...</span>
+            </div>
+            <div class="yes-no-timed">
+                <button class="btn btn-primary btn-no">No</button>
+                <button class="btn btn-danger btn-yes" disabled>Yes</button>
+            </div>
+            <button class="btn btn-primary" id="start-conference-btn">Start conference</button>
         </div>
     </div>
 
@@ -87,6 +100,10 @@
                     <img src="{% static 'conference/img/chat.png' %}" alt="Users">
                 </button>
                 <h2 id="conference-name">Meeting Name</h2>
+                <div class="conference-info">
+                    <span id="meeting-duration"> 00:00 </span>
+                    <button id="stop-conference"> - End conference </button>
+                </div>
             </div>
 
             <div class="video-grid" id="videos"></div>

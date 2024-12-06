@@ -16,12 +16,15 @@ const usersFrame = document.querySelector(".users")
 const usersOpenBtn = document.getElementById("users-btn")
 const usersCloseBtn = document.querySelector(".users-close-btn")
 
+const endConferenceBtn = document.getElementById("stop-conference")
+
 const path = window.location.pathname
 const match = path.match(/\/conference\/web\/([^\/]+)/)[1]
 
 var usersOpen = false
 var chatOpen = false
 
+var conferenceStarted = false
 var websocketConnected = false
 
 function connectEventListeners() {
@@ -52,12 +55,12 @@ function connectEventListeners() {
     closeCameraSelectorBtn.addEventListener("click", () => {
         closeCameraSelector()
     })
-    
+
     openCameraSelectorBtn.addEventListener("click", () => {
         if (!WebRTCStarted || cameraEnabled || !currentWebcamSelectedStream) {
             return
         }
-    
+
         turnCameraOn(currentWebcamSelectedStream)
         closeCameraSelector(false)
     })
@@ -77,12 +80,33 @@ function connectEventListeners() {
         }
         sendChatMessage()
     })
+
+    endConferenceBtn.addEventListener("click", () => {
+        if (!WebRTCStarted) {
+            return
+        }
+
+        if (hostId !== userId) {
+            return
+        }
+
+        showTextOverlay(
+            "End conference", "Are you sure you want to end the conference?",
+            "yes-no-timed", {
+                "yes": () => {
+                    endConference()
+                },
+                "no": () => {},
+                "delay": 5,
+            }
+        )
+    })
 }
 
 async function onWebRTCStart() {
     loadMessageHistory()
     await getConferenceInfo(currentToken)
-    
+
     document.getElementById("conference-name").innerHTML = conferenceInfo["name"]
     document.getElementById("title").innerHTML = conferenceInfo["name"]
 
@@ -116,7 +140,7 @@ async function connect(isListener) {
     if (!successful) {
         connectionOverlay.classList.add("active")
         hideTextOverlay()
-        
+
         return
     }
 
@@ -132,9 +156,43 @@ async function connect(isListener) {
     }
 }
 
-function onWebsocketOpen() {
-    websocketConnected = true
-    log("Websocket connection established.", "LOG", false)
+function displayNotStarted() {
+    if (userId == hostId) {
+        showTextOverlay(
+            "Conference hasn't started yet",
+            "Do you wish to start the conference now?",
+            "start-prompt-host"
+        )
+
+        document.getElementById("start-conference-btn").addEventListener("click", (event) => {
+            if (!websocketConnected || !isHost || !currentToken) {
+                console.log(websocketConnected, isHost, currentToken)
+                return
+            }
+
+            event.target.innerHTML = "Starting..."
+            event.target.disabled = true
+
+            postHttpAsync(`/conference/api/start/?token=${currentToken}`)
+            log("Sent a request to start the conference", "LOG", false)
+        })
+
+        return
+    }
+
+    showTextOverlay(
+        "Conference hasn't started yet",
+        "The conference that you're trying to connect to hasn't started yet." +
+        "You dont have to refresh the page, you will be automatically connected when host starts the conference.",
+        "waiting-host", { host_id: hostId }
+    )
+}
+
+function onConferenceStart() {
+    updateElapsedTime()
+    setInterval(updateElapsedTime, 1000)
+
+    document.getElementById("start-sound").play()
 
     hideTextOverlay()
     connectionOverlay.classList.add("active")
@@ -148,6 +206,64 @@ function onWebsocketOpen() {
     })
 }
 
+function onConferenceEnd() {
+    stopWebRTC()
+
+    var countdown = 11
+    const countdownFunc = () => {
+        countdown -= 1
+        showTextOverlay(
+            "The conference has ended!",
+            `You will be redirected back to the home page in ${countdown} secounds.`
+        )
+
+        if (countdown > 0) {
+            setTimeout(countdownFunc, 1000)
+        } else {
+            document.location.assign("/")
+        }
+    }
+
+    document.getElementById("background-transition").style.display = "block"
+    document.getElementById("end-sound").play()
+
+    countdownFunc()
+}
+
+function onWebsocketOpen() {
+    websocketConnected = true
+    log("Websocket connection established.", "LOG", false)
+
+    if (!conferenceInfo["started"]) {
+        displayNotStarted()
+        return
+    }
+
+    if (conferenceInfo["ended"]) {
+        const date = new Date(conferenceInfo.end_time)
+
+        const options = {
+            weekday: "long",
+            day: "numeric",
+            year: "numeric",
+            hour: "numeric",
+            minute: "numeric",
+            hour12: true
+        }
+
+        const formattedDate = new Intl.DateTimeFormat("en-US", options).format(date)
+
+        showTextOverlay(
+            "Conference ended",
+            `This conference has already ended on ${formattedDate}`
+        )
+        return
+    }
+
+    conferenceStarted = true
+    onConferenceStart()
+}
+
 function onWebsocketError() {
     if (!websocketConnected) {
         showTextOverlay(
@@ -159,7 +275,16 @@ function onWebsocketError() {
     }
 }
 
-function initializeConnection(token) {
+function endConference() {
+    if (!isHost) {
+        return
+    }
+
+    postHttpAsync(`/conference/api/end/?token=${currentToken}`)
+    log("Sent a request to end the conference.", "LOG", false)
+}
+
+async function initializeConnection(token) {
     if (!token || token === "") {
         log("Failed to find URL token.", "error", false)
         return
@@ -167,6 +292,18 @@ function initializeConnection(token) {
 
     log("Initializing HTML5Client", "LOG", false)
     showTextOverlay("Connecting")
+
+    try {
+        await getMyUserId()
+        await getConferenceInfo(token)
+    } catch (error) {
+        showTextOverlay(
+            "Failed to fetch",
+            "Failed to connect to conference, please ensure that you're using the correct token and the conference still exists" +
+            " If you believe that is is a mistake or the issue persists, please contact technical support."
+        )
+        return
+    }
 
     connectWebsocket(match)
 }

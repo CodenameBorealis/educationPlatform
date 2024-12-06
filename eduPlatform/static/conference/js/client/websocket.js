@@ -3,6 +3,14 @@ var reconnectAttempts = 0
 
 async function handleGlobalSignaling(type, from, data) {
     const handlers = {
+        "conference-started": async () => {
+            if (conferenceStarted) return
+            onConferenceStart()
+        },
+        "conference-ended": async () => {
+            if (!WebRTCStarted) return
+            onConferenceEnd()
+        },
         "new-participant": async () => {
             if (peers[from]) disconnectUser(from);
             await connectUser(from, data.default_media, data.is_listener);
@@ -82,8 +90,6 @@ async function handlePersonalSignaling(type, from, data) {
 }
 
 async function onWebSocketRecieve(event) {
-    if (!WebRTCStarted) return;
-
     const data = JSON.parse(event.data)
     const { type, from, to } = data;
 
@@ -119,24 +125,6 @@ function onWebsocketOpen(event) {
 
 function onWebsocketError(error) {
     log("onWebsocketError is not implemented!", "warn")
-}
-
-function disconnectWebsocket() {
-    if (!ws) {
-        return
-    }
-
-    ws.close()
-    ws = null
-
-    for (const [id, peer] of Object.entries(peers)) {
-        disconnectUser(id)
-    }
-
-    removeStream("video", userId)
-
-    disconnectBtn.disabled = true
-    log("Websocket was disconnected manually.", "warn", false)
 }
 
 async function connectWebsocket(token) {

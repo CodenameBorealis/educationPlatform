@@ -313,6 +313,22 @@ async function onWebRTCStart() {
     log("onWebRTCStart is not implemented.", "warn", false)
 }
 
+function stopWebRTC() {
+    if (!WebRTCStarted) {
+        return
+    }
+
+    ws.close()
+    ws = null
+
+    for (const [id, peer] of Object.entries(peers)) {
+        disconnectUser(id)
+    }
+
+    WebRTCStarted = false
+    log("WebRTC client stopped.", "log", false)
+}
+
 async function startWebRTC(is_listener = false) {
     if (!ws) {
         log("Cannot start WebRTC, websocket is not connected.", "error")

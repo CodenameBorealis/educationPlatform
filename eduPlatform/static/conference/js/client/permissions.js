@@ -55,6 +55,7 @@ function loadAsCoHost() {
 
 function loadAsHost() {
     loadAsCoHost()
+    endConferenceBtn.style.display = "inline-block"
 }
 
 async function unloadCoHost() {
