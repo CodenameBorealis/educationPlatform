@@ -11,7 +11,7 @@ body {
 }
 
 .background-hide {
-    position: absolute;
+    position: fixed;
     width: 100%;
     height: 100%;
     top: 0;
@@ -31,6 +31,41 @@ body {
     justify-content: center;
     align-items: center;
     z-index: 999;
+}
+
+.waiting-host {
+    margin-top: 10px;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.waiting-host img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+.waiting-host span {
+    color: rgba(255, 255, 255, 0.45)
+}
+
+#start-conference-btn {
+    margin-top: 10px;
+    display: none;
+}
+
+.yes-no-timed {
+    display: none;
+    flex-direction: row;
+    justify-content: space-between;
+    align-content: space-between;
+    margin-top: 10px;
+    width: 100%;
+}
+
+.yes-no-timed button {
+    min-width: 100px;
 }
 
 /* Alerts */
@@ -323,6 +358,29 @@ body {
     max-height: 40px !important;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-bottom: 0;
+}
+
+#meeting-duration {
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: lighter;
+}
+
+#stop-conference {
+    background: none;
+    color: rgba(255, 255, 255, 0.5);
+    border: none;
+    cursor: pointer;
+    transition: .2s;
+    display: none;
+}
+
+#stop-conference:focus {
+    outline: none;
+}
+
+#stop-conference:hover {
+    color: rgb(255, 71, 71);
 }
 
 .video-grid {

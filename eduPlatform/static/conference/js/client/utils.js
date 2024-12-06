@@ -1,9 +1,10 @@
 var userId, hostId, isHost, conferenceInfo
 
 var consoleBasedLogs = true
-var verboseLogsEnabled = false
+var verboseLogsEnabled = true
 
 var _text_overlay_shown = false
+var _text_overlay_handler = ""
 
 function log(message, type = "LOG", is_verbose = true) {
     if (is_verbose && !verboseLogsEnabled) {
@@ -162,13 +163,78 @@ async function awaitMapEntry(map, key, timeout = 5000) {
     });
 }
 
-function showTextOverlay(topText = "", bottomText = "") {
+function showTextOverlay(topText = "", bottomText = "", customHandlerName, handlerData) {
+    if (_text_overlay_shown && customHandlerName != _text_overlay_handler) {
+        hideTextOverlay()
+    }
+
     const overlay = document.getElementById("textOverlay")
     const header = overlay.querySelector(".header")
     const bottom = overlay.querySelector(".bottom-text")
 
+    const customHandlers = {
+        "waiting-host": () => {
+            const waiting_div = overlay.querySelector(".waiting-host")
+            const pfp = waiting_div.querySelector("img")
+
+            waiting_div.style.display = "flex"
+            pfp.src = `/user/get_pfp/?user_id=${handlerData["host_id"]}`
+        },
+        "start-prompt-host": () => {
+            document.getElementById("start-conference-btn").style.display = "block"
+        },
+        "yes-no-timed": () => {
+            const frame = overlay.querySelector(".yes-no-timed")
+            const yes = overlay.querySelector(".btn-yes")
+            const no = overlay.querySelector(".btn-no")
+
+            var seconds = handlerData["delay"]
+            var timeout
+
+            frame.style.display = "flex"
+
+            const countdown = () => {
+                seconds -= 1
+                yes.disabled = true
+
+                if (seconds > 0) {
+                    timeout = setTimeout(countdown, 1000)
+                    yes.innerHTML = `Yes (${seconds})`
+                } else {
+                    yes.innerHTML = "Yes"
+                    yes.disabled = false
+                }
+            }
+
+            yes.addEventListener("click", () => {
+                if (timeout) {
+                    clearTimeout(timeout)
+                }
+
+                if (handlerData["yes"]) handlerData["yes"]()
+                hideTextOverlay()
+            })
+
+            no.addEventListener("click", () => {
+                if (timeout) {
+                    clearTimeout(timeout)
+                }
+            
+                if (handlerData["no"]) handlerData["no"]()
+                hideTextOverlay()
+            })
+
+            countdown()
+        }
+    }
+
     header.innerHTML = topText
     bottom.innerHTML = bottomText
+
+    if (customHandlers[customHandlerName]) {
+        customHandlers[customHandlerName]()
+        _text_overlay_handler = customHandlerName
+    }
 
     if (!_text_overlay_shown) {
         overlay.classList.add("active")
@@ -180,7 +246,50 @@ function hideTextOverlay() {
     const overlay = document.getElementById("textOverlay")
     overlay.classList.remove("active")
 
+    const handlerCleaners = {
+        "waiting-host": () => {
+            const waiting_div = overlay.querySelector(".waiting-host")
+            waiting_div.style.display = "none"
+        },
+        "start-prompt-host": () => {
+            document.getElementById("start-conference-btn").style.display = "none"
+        },
+        "yes-no-timed": () => {
+            const frame = overlay.querySelector(".yes-no-timed")
+            const yes = overlay.querySelector(".btn-yes")
+            const no = overlay.querySelector(".btn-no")
+
+            frame.style.display = "none"
+        }
+    }
+
     _text_overlay_shown = false
+
+    if (_text_overlay_handler !== "" && handlerCleaners[_text_overlay_handler]) {
+        handlerCleaners[_text_overlay_handler]()
+        _text_overlay_handler = ""
+    }
+}
+
+function updateElapsedTime() {
+    const now = new Date()
+    const start = new Date(conferenceInfo["start_time"])
+    const elapsedMs = now - start
+
+    if (elapsedMs < 0) {
+        document.getElementById("meeting-duration").textContent = ""
+        return
+    }
+
+    const seconds = Math.floor((elapsedMs / 1000) % 60)
+    const minutes = Math.floor((elapsedMs / (1000 * 60)) % 60)
+    const hours = Math.floor(elapsedMs / (1000 * 60 * 60))
+
+    if (hours > 0) {
+        document.getElementById("meeting-duration").textContent = `${hours}:${minutes}:${seconds}`
+    } else {
+        document.getElementById("meeting-duration").textContent = `${minutes}:${seconds}`
+    }
 }
 
 // Dropup menu
