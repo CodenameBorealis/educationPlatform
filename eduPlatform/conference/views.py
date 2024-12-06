@@ -58,6 +58,7 @@ class GetConferenceData(APIView, ConferencePermissionsMixin):
             "started": conference.started,
             "ended": conference.ended,
             "start_time": conference.start_time,
+            "end_time": conference.end_time
         }
 
         return Response(data, status=status.HTTP_200_OK)
