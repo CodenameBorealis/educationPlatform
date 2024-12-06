@@ -16,7 +16,7 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE')
+IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'FALSE') == "TRUE"
 
 UPLOAD_DIR = Path(os.getenv("UPLOAD_PATH", BASE_DIR / "uploads"))
 
@@ -31,7 +31,7 @@ if not os.path.exists(UPLOAD_DIR):
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq$4hu@(hz3qv5rvagmz*!*au)')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('IS_PRODUCTION', 'FALSE') == "FALSE"
+DEBUG = not IS_PRODUCTION
 
 CSRF_TRUSTED_ORIGINS = ["https://demodeck.ru", "https://www.demodeck.ru"]
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "demodeck.ru", "www.demodeck.ru", ".demodeck.ru" ,"31.31.203.209", "0.0.0.0"]
@@ -101,6 +101,20 @@ TEMPLATES = [
     },
 ]
 
+if IS_PRODUCTION:
+    DEFAULT_RENDERER_CLASSES = [
+        'rest_framework.renderers.JSONRenderer',
+    ]
+else:
+    DEFAULT_RENDERER_CLASSES = [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': DEFAULT_RENDERER_CLASSES
+}
+
 WSGI_APPLICATION = 'eduPlatform.wsgi.application'
 ASGI_APPLICATION = 'eduPlatform.asgi.application'
 
@@ -117,7 +131,7 @@ DATABASES = {
         'HOST': os.getenv('DJANGO_DB_HOST'),
         'PORT': os.getenv('DJANGO_DB_PORT', '3306'),
         'CONN_MAX_AGE': 500
-    } if IS_PRODUCTION == "TRUE" else {
+    } if IS_PRODUCTION else {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
@@ -129,7 +143,7 @@ CHANNEL_LAYERS = {
         'CONFIG': {
             'hosts': [os.getenv('REDIS_URL', 'redis://localhost:6379')],
         },
-    } if IS_PRODUCTION == "TRUE" else {
+    } if IS_PRODUCTION else {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     }
 }
