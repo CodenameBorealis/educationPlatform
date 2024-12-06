@@ -91,7 +91,7 @@ class StartConference(APIView, ConferencePermissionsMixin):
 
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f"signaling_{request.GET["token"]}",
+            f"signaling_{request.GET['token']}",
             {"type": "signaling_message", "message": {"type": "conference-started"}},
         )
 
@@ -133,12 +133,12 @@ class EndConference(APIView, ConferencePermissionsMixin):
         channel_layer = get_channel_layer()
 
         async_to_sync(channel_layer.group_send)(
-            f"signaling_{request.GET["token"]}",
+            f"signaling_{request.GET['token']}",
             {"type": "signaling_message", "message": {"type": "conference-ended"}},
         )
 
         async_to_sync(channel_layer.group_send)(
-            f"signaling_{request.GET["token"]}",
+            f"signaling_{request.GET['token']}",
             {"type": "end_conference"},
         )
 
