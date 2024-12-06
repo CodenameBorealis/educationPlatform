@@ -9,7 +9,6 @@ async function getHttpAsync(url) {
         return await response;
     } catch (error) {
         console.error(`Client request failed: ${error.message}`, error.stack);
-        alert(`Client request failed: ${error.message}`);
         return null;
     }
 }
@@ -40,7 +39,6 @@ async function postHttpAsync(url, data = {}, awaitForResponse = false, callback 
         }
     } catch (error) {
         console.error(`Client request failed: ${error.message}`, error.stack);
-        alert(`Client request failed: ${error.message}`);
     }
 }
 
@@ -69,6 +67,5 @@ async function postFormHttpAsync(url, formData, awaitForResponse = false, callba
         }
     } catch (error) {
         console.error(`Client request failed: ${error.message}`, error.stack);
-        alert(`Client request failed: ${error.message}`);
     }
 }
