@@ -8,13 +8,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username'] 
 
 class ConferenceSerializer(serializers.ModelSerializer):
-    host = UserSerializer(read_only=True)
-    allowed_users = UserSerializer(many=True, read_only=True)
-    token = serializers.CharField(max_length=65, required=True)
-    
     class Meta:
         model = models.Conference
-        fields = ('id', 'name', 'host', 'allowed_users')
+        fields = ('id', 'name', 'host', 'allowed_users', 'start_time', 'end_time')
+        read_only_fields = ['token', 'ended', 'started']
     
     def create(self, validated_data):
         allowed_users = validated_data.pop('allowed_users')

@@ -11,6 +11,7 @@ from asyncio import TimeoutError
 from eduPlatform.asgi import application
 from .consumers import SignalingConsumer
 from .models import Conference
+from user.tests import BaseUserTest
 
 
 class SignalingConsumerTest(TestCase):
@@ -21,6 +22,7 @@ class SignalingConsumerTest(TestCase):
         await dsa(self.user.save)()
 
         self.conference = await dsa(Conference.objects.create)(host=self.user)
+        self.conference.started = True
         await dsa(self.conference.save)()
 
         self.communicator = WebsocketCommunicator(
@@ -103,24 +105,26 @@ class SignalingConsumerTest(TestCase):
 
     async def test_concurrent_connections(self):
         await self.asyncSetUp()
-        
+
         async def _create_communicator(id):
-            user = await dsa(self.User.objects.create)(username=str(id), password="test", email=f"test{id}@test.c")
-            
+            user = await dsa(self.User.objects.create)(
+                username=str(id), password="test", email=f"test{id}@test.c"
+            )
+
             communicator = WebsocketCommunicator(
                 AuthMiddlewareStack(application),
                 f"/ws/signaling/{self.conference.token}/",
             )
             communicator.scope["user"] = user
-            
+
             await dsa(user.save)()
             await dsa(self.conference.allowed_users.add)(user)
 
             return communicator
-        
+
         communicators = [await _create_communicator(id) for id in range(100)]
         connections = [await communicator.connect() for communicator in communicators]
-        
+
         for connected, _ in connections:
             self.assertTrue(connected, "Failed to connect websocket.")
 
@@ -202,95 +206,50 @@ class SignalingConsumerTest(TestCase):
             await self.communicator.receive_json_from()
 
 
-class MessageHistoryTest(TestCase):
+class MessageHistoryTest(BaseUserTest):
+    baseURL = "/conference/api/get-message-history/"
+    requestType = "GET"
+
     def setUp(self):
-        self.mainURL = "/conference/api/get-message-history/"
-
-        User = get_user_model()
-        self.user = User.objects.create_testuser()
-
-        self.client = Client()
-
-        logged_in = self.client.login(username="test", password="test")
-        self.assertTrue(logged_in, "Failed to log into testing account.")
+        self.set_up_client()
 
         self.conference = Conference.objects.create(host=self.user)
         self.conference.save()
 
-    def test_unauthorized(self):
-        self.client.logout()
-        request = self.client.get(f"{self.mainURL}?token=something")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(
-            request.status_code,
-            403,
-            "You shouldn't be able to access this API unauthorized.",
-        )
-
     def test_request(self):
-        request = self.client.get(f"{self.mainURL}?token={self.conference.token}")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(request.status_code, 200, "Got an invalid status code.")
+        request = self.client.get(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request, expect_json=True)
 
         json = request.json()
-
-        self.assertIsNotNone(json, "Got an empty JSON response.")
 
         self.assertTrue(json.get("success"), "JSON success is False.")
         self.assertIsNotNone(json.get("history"), "Missing history field.")
 
     def test_request_invalid_token(self):
-        request = self.client.get(f"{self.mainURL}?token=some-invalid-token")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(request.status_code, 400, "Invalid status code given.")
+        request = self.client.get(f"{self.baseURL}?token=some-invalid-token")
+        self.validate_response(request, 400)
 
     def test_request_no_token(self):
-        request = self.client.get(f"{self.mainURL}")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(request.status_code, 400, "Invalid status code given.")
+        request = self.client.get(f"{self.baseURL}")
+        self.validate_response(request, 400)
 
 
-class GetMeetingInfoTest(TestCase):
+class GetMeetingInfoTest(BaseUserTest):
+    baseURL = "/conference/api/get-data/"
+    requestType = "GET"
+
     def setUp(self):
-        self.mainURL = "/conference/api/get-data/"
-
-        User = get_user_model()
-        self.user = User.objects.create_testuser()
-
-        self.client = Client()
-
-        logged_in = self.client.login(username="test", password="test")
-        self.assertTrue(logged_in, "Failed to log into testing account.")
+        self.set_up_client()
 
         self.conference = Conference.objects.create(host=self.user)
         self.conference.save()
 
-    def test_unauthorized(self):
-        self.client.logout()
-        request = self.client.get(f"{self.mainURL}?token=something")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(
-            request.status_code,
-            403,
-            "You shouldn't be able to access this API unauthorized.",
-        )
-
     def test_request(self):
-        request = self.client.get(f"{self.mainURL}?token={self.conference.token}")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(
-            request.status_code, 200, "Request returned an invalid response code."
-        )
+        request = self.client.get(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request, expect_json=True)
 
         json = request.json()
 
-        self.assertIsNotNone(json, "JSON response missing.")
         self.assertTrue(json.get("success"), "JSON success is False.")
         self.assertEqual(
             json.get("host"), self.conference.host.id, "Invalid host ID given."
@@ -300,17 +259,86 @@ class GetMeetingInfoTest(TestCase):
         )
 
     def test_invalid(self):
-        request = self.client.get(f"{self.mainURL}?token=totally_invalid")
-
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(
-            request.status_code, 400, "Request returned an invalid response code."
-        )
+        request = self.client.get(f"{self.baseURL}?token=totally_invalid")
+        self.validate_response(request, 400)
 
     def test_missing(self):
-        request = self.client.get(f"{self.mainURL}")
+        request = self.client.get(f"{self.baseURL}")
+        self.validate_response(request, 400)
 
-        self.assertIsNotNone(request.headers, "Got an empty response.")
-        self.assertEqual(
-            request.status_code, 400, "Request returned an invalid response code."
+
+class StartConferenceTest(BaseUserTest):
+    baseURL = "/conference/api/start/"
+
+    def setUp(self):
+        self.set_up_client()
+
+        self.conference = Conference.objects.create(host=self.user)
+        self.conference.save()
+
+    def test_start(self):
+        request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request)
+
+        conference = Conference.objects.get(token=self.conference.token)
+        self.assertTrue(
+            conference.started, "API did not set conference started to True."
         )
+        self.assertIsNotNone(
+            conference.start_time, "API failed to set the start_time of the conference."
+        )
+
+    def test_already_started(self):
+        conference = Conference.objects.create(host=self.user)
+        conference.started = True
+
+        conference.save()
+
+        request = self.client.post(f"{self.baseURL}?token={conference.token}")
+        self.validate_response(request, 400)
+
+    def test_not_host(self):
+        user = self.User.objects.create_user(
+            username="test2", email="test2@test.com", password="test2"
+        )
+        logged_in = self.client.login(username="test2", password="test2")
+
+        self.assertTrue(logged_in, "Failed to log into a testing account.")
+
+        request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request, 403)
+
+
+class EndConferenceTest(BaseUserTest):
+    baseURL = "/conference/api/end/"
+
+    def setUp(self):
+        self.set_up_client()
+
+        self.conference = Conference.objects.create(host=self.user, started=True)
+        self.conference.save()
+
+    def test_end_conference(self):
+        request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request)
+
+        conference = Conference.objects.get(token=self.conference.token)
+
+        self.assertTrue(conference.ended, "API failed to set ended to True.")
+        self.assertIsNotNone(
+            conference.end_time, "API did not set the end time of the conference."
+        )
+
+    def test_already_ended(self):
+        self.conference.ended = True
+        self.conference.save()
+        
+        request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request, 400)
+        
+    def test_not_started(self):
+        self.conference.started = False
+        self.conference.save()
+        
+        request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request, 400)

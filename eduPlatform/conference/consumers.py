@@ -249,6 +249,12 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         # Async function used for handling data received from the clients
 
+        # Refresh the conference model and check if it has started, if not or it's already ended, ignore the signaling request
+        self.conference = await dsa(self.get_conference)(self.room_token)
+        
+        if not self.conference.started or self.conference.ended:
+            return
+
         # Load the data and for security measures to not let impersonation take place, override 'from' field
         data = json.loads(text_data)
         data["from"] = self.scope["user"].id
