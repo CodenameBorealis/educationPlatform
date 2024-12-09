@@ -214,7 +214,7 @@ function onConferenceEnd() {
         countdown -= 1
         showTextOverlay(
             "The conference has ended!",
-            `You will be redirected back to the home page in ${countdown} secounds.`
+            `You will be redirected back to the home page in ${countdown} seconds.`
         )
 
         if (countdown > 0) {
