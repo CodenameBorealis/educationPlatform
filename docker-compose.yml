@@ -3,16 +3,16 @@ version: '3.8'
 services:
   daphne:
     build: ./eduPlatform
-    command: daphne -b 0.0.0.0 -p 8001 eduPlatform.asgi:application
+    command: daphne -b 0.0.0.0 -p 8000 eduPlatform.asgi:application
     ports:
-      - "8000:8001"
+      - "8000:8000"
     env_file:
       - .env.production
     depends_on:
       - redis
     
   celery-worker:
-    image: celery:latest
+    build: ./eduPlatform
     command: celery -A eduPlatform worker --loglevel=info
     depends_on:
       - redis
