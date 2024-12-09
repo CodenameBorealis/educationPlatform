@@ -16,6 +16,9 @@ class Conference(models.Model):
     
     start_time = models.DateTimeField(null=True, blank=True)
     end_time = models.DateTimeField(null=True, blank=True)
+    
+    max_conference_duration = models.IntegerField(default=0)
+    celery_task_id = models.CharField(null=True, max_length=100, blank=True)
 
     def save(self, *args, **kwargs):
         if not self.token:

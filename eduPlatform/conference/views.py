@@ -6,15 +6,20 @@ from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils.timezone import now
 
+from datetime import timedelta
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
+from celery.app.control import Control
+
 from .models import Conference as ConferenceModel
 from .mixins import ConferencePermissionsMixin
 
+from . import tasks as tasks
 
 class Conference(View):
     def get(self, request, token, *args, **kwargs):
@@ -58,7 +63,7 @@ class GetConferenceData(APIView, ConferencePermissionsMixin):
             "started": conference.started,
             "ended": conference.ended,
             "start_time": conference.start_time,
-            "end_time": conference.end_time
+            "end_time": conference.end_time,
         }
 
         return Response(data, status=status.HTTP_200_OK)
@@ -85,6 +90,12 @@ class StartConference(APIView, ConferencePermissionsMixin):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        duration = conference.max_conference_duration
+        if duration > 0:
+            end_time = now() + timedelta(minutes=duration, seconds=5)
+            task = tasks.end_conference.apply_async([conference.token], eta=end_time)
+            conference.celery_task_id = task.id
+
         conference.started = True
         conference.start_time = now()
 
@@ -102,11 +113,11 @@ class StartConference(APIView, ConferencePermissionsMixin):
 class EndConference(APIView, ConferencePermissionsMixin):
     """
     An API call located at /conference/api/end/?token=<token>
-    
+
     Automatically disconnects all users from the meeting and puts it into closed state.
     Note: This API is only accessible to the host of the meeting
     """
-    
+
     def post(self, request, *args, **kwargs):
         conference = self.validate_request(request)
 
@@ -126,21 +137,14 @@ class EndConference(APIView, ConferencePermissionsMixin):
                 "Cannot stop a conference that hasn't been started yet.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
+            
+        if conference.celery_task_id:
+            control = Control(app=tasks.end_conference.app)
+            control.revoke(conference.celery_task_id, terminate=True)
+            
+            conference.celery_task_id = None
+            conference.save()
 
-        conference.ended = True
-        conference.end_time = now()
-        conference.save()
-
-        channel_layer = get_channel_layer()
-
-        async_to_sync(channel_layer.group_send)(
-            f"signaling_{request.GET['token']}",
-            {"type": "signaling_message", "message": {"type": "conference-ended"}},
-        )
-
-        async_to_sync(channel_layer.group_send)(
-            f"signaling_{request.GET['token']}",
-            {"type": "end_conference"},
-        )
+        tasks.end_conference(conference.token)
 
         return Response("Successfully ended the conference.", status=status.HTTP_200_OK)
