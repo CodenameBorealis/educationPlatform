@@ -227,6 +227,10 @@ function onConferenceEnd() {
     document.getElementById("background-transition").style.display = "block"
     document.getElementById("end-sound").play()
 
+    if (endCountdownInterval) {
+        clearInterval(endCountdownInterval)
+    }
+
     countdownFunc()
 }
 

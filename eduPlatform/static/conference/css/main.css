@@ -363,6 +363,18 @@ body {
     align-items: center;
 }
 
+.conference-timer {
+    width: 100%;
+    background-color: #0056b3;
+    color: white;
+    font-weight: lighter;
+    border-radius: 5px;
+    text-wrap: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: none;
+}
+
 .meeting-info h2 {
     max-width: 70%;
     max-height: 40px !important;
@@ -371,7 +383,7 @@ body {
     margin-bottom: 0;
 }
 
-#meeting-duration {
+#conference-duration {
     color: rgba(255, 255, 255, 0.5);
     font-weight: lighter;
 }

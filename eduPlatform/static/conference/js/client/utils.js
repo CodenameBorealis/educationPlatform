@@ -1,3 +1,6 @@
+const endCountdown = document.getElementById("end-countdown")
+var endCountdownInterval
+
 var userId, hostId, isHost, conferenceInfo
 
 var consoleBasedLogs = true
@@ -219,7 +222,7 @@ function showTextOverlay(topText = "", bottomText = "", customHandlerName, handl
                 if (timeout) {
                     clearTimeout(timeout)
                 }
-            
+
                 if (handlerData["no"]) handlerData["no"]()
                 hideTextOverlay()
             })
@@ -277,7 +280,7 @@ function updateElapsedTime() {
     const elapsedMs = now - start
 
     if (elapsedMs < 0) {
-        document.getElementById("meeting-duration").textContent = ""
+        document.getElementById("conference-duration").textContent = ""
         return
     }
 
@@ -286,23 +289,58 @@ function updateElapsedTime() {
     const hours = Math.floor(elapsedMs / (1000 * 60 * 60))
 
     if (hours > 0) {
-        document.getElementById("meeting-duration").textContent = `${hours}:${minutes}:${seconds}`
+        document.getElementById("conference-duration").textContent = `${hours}:${minutes}:${seconds}`
     } else {
-        document.getElementById("meeting-duration").textContent = `${minutes}:${seconds}`
+        document.getElementById("conference-duration").textContent = `${minutes}:${seconds}`
+    }
+
+    if (conferenceInfo.max_duration <= 0) {
+        return
+    }
+
+    const currentTime = new Date();
+    const startTime = new Date(conferenceInfo.start_time)
+    const endTime = new Date(startTime.getTime() + conferenceInfo.max_duration * 60 * 1000)
+    
+    const remainingTime = endTime - currentTime;
+    const minutesLeft = Math.floor(remainingTime / (60 * 1000))
+
+    if (minutesLeft > 0 && minutesLeft <= 15 && !endCountdownInterval && WebRTCStarted) {
+        endCountdown.style.display = "block"
+        endCountdownInterval = setInterval(updateEndTime, 1000)
     }
 }
 
-// Dropup menu
+function updateEndTime() {
+    const currentTime = new Date();
+    
+    const startTime = new Date(conferenceInfo.start_time)
+    const endTime = new Date(startTime.getTime() + conferenceInfo.max_duration * 60 * 1000)
+
+    const timeLeft = Math.max(0, (endTime - currentTime) / 1000)
+
+    if (timeLeft <= 0) {
+        clearInterval(endCountdownInterval)
+        endCountdown.innerHTML = "The time has ran out, this conference will end shortly."
+
+        return
+    }
+
+    const minutes = Math.floor(timeLeft / 60)
+    const seconds = Math.floor(timeLeft % 60)
+    const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+
+    endCountdown.innerHTML = `${formattedTime} is left until this conference ends.`
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     const btnControl = document.querySelector(".drop-up-btn");
     const dropupMenu = document.querySelector(".dropup-menu");
 
-    // Toggle the dropup menu
     btnControl.addEventListener("click", () => {
         dropupMenu.style.display = dropupMenu.style.display === "block" ? "none" : "block";
     });
 
-    // Close the menu if clicked outside
     document.addEventListener("click", (e) => {
         if (!btnControl.contains(e.target)) {
             dropupMenu.style.display = "none";
