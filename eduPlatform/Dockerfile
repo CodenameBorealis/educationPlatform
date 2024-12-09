@@ -4,8 +4,7 @@ FROM python:3.12.2-slim-bullseye
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY ./eduPlatform /app
-COPY .env.production /app/eduPlatform/.env.production
+COPY . /app
 COPY requirements.txt /app/
 
 RUN apt-get -y update && apt-get -y upgrade
@@ -25,4 +24,4 @@ USER appuser
 ENV DJANGO_SETTINGS_MODULE eduPlatform.settings
 EXPOSE 8000
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "eduPlatform.asgi:application"]
+#CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "eduPlatform.asgi:application"]
