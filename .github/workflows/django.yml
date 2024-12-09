@@ -23,11 +23,11 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install Dependencies
       run: |
+        cd ./eduPlatform/
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip uninstall --yes channels daphne
         python -m pip install channels["daphne"]
     - name: Run Tests
       run: |
-        cd ./eduPlatform/
         python manage.py test
