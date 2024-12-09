@@ -12,7 +12,7 @@ services:
       - redis
     
   celery-worker:
-    build: ./eduPlatform
+    image: celery:latest
     command: celery -A eduPlatform worker --loglevel=info
     depends_on:
       - redis
