@@ -30,4 +30,5 @@ jobs:
         python -m pip install channels["daphne"]
     - name: Run Tests
       run: |
+        cd ./eduPlatform/
         python manage.py test
