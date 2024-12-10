@@ -117,7 +117,7 @@ async function onWebRTCStart() {
     }
 
     if (!isListener) {
-        toggleMicrophone(false)
+        toggleMicrophone(false, false)
     }
 
     document.getElementById("background-transition").style.display = "none"

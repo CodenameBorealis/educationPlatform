@@ -28,7 +28,7 @@ async function handleGlobalSignaling(type, from, data) {
         },
         "toggle-microphone": async () => {
             const peer = peers[from];
-            if (peer && !peer.isListener && !peer.failed) {
+            if (peer && !peer.isListener && !peer.failed && peer.connected) {
                 peer.micEnabled = data.status;
                 updateMicrophoneVisual(from, data.status);
             }

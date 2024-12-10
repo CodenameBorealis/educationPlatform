@@ -119,7 +119,7 @@ async function loadMicrophoneSelector() {
     }
 }
 
-function toggleMicrophone(status) {
+function toggleMicrophone(status, updatePeers=true) {
     const stream = localStream.getTracks().find(track => track.kind == 'audio')
 
     stream.enabled = status
@@ -135,10 +135,12 @@ function toggleMicrophone(status) {
 
     updateMicrophoneVisual(userId, status)
 
-    ws.send(JSON.stringify({
-        type: "toggle-microphone",
-        status: status
-    }))
-    
+    if (updatePeers) {
+        ws.send(JSON.stringify({
+            type: "toggle-microphone",
+            status: status
+        }))
+    }
+
     log("Microphone: " + (status ? "On" : "Off"))
 }
