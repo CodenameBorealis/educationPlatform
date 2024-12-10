@@ -10,6 +10,9 @@ COPY requirements.txt /app/
 RUN apt-get -y update && apt-get -y upgrade
 RUN apt-get -y install python3-dev default-libmysqlclient-dev build-essential pkg-config coturn
 
+RUN mkdir -p /home/django/uploads && \
+    chown -R django:django /home/django/uploads
+
 WORKDIR /app
 
 RUN python3 -m pip install --upgrade pip
@@ -17,9 +20,6 @@ RUN python3 -m pip install -r requirements.txt
 RUN python3 -m pip uninstall --yes channels daphne
 
 RUN python3 -m pip install channels["daphne"]
-
-RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
-USER appuser
 
 ENV DJANGO_SETTINGS_MODULE eduPlatform.settings
 EXPOSE 8000

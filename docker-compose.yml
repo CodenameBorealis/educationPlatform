@@ -16,6 +16,8 @@ services:
       - redis
     networks:
       - django_network
+    volumes:
+      - ./uploads:/home/django/uploads
     
   celery-worker:
     build: ./eduPlatform
