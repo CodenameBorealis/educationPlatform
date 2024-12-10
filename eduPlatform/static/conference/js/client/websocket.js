@@ -90,10 +90,10 @@ async function handlePersonalSignaling(type, from, data) {
 }
 
 async function onWebSocketRecieve(event) {
-    if (!WebRTCStarted) return
-
     const data = JSON.parse(event.data)
     var { type, from, to } = data;
+    
+    if (!WebRTCStarted && type !== "conference-started") return
 
     from = Number(from)
     to = Number(to)
