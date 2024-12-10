@@ -1,5 +1,10 @@
 # Project: EDUCATE // EduPlatfrom
 
-This is a project dedicated to developing a functional prototype of an online educational platform where you can study, do homework, view an on-site library of information about various topics and most importantly the ability to have online classes (Im not sure if I can do that tho lmao)
+This is a project dedicated to developing a functional prototype of an online educational platform where people have the ability to host conferences and etc.
+This project is being made solely for portfolio and learning of python's Django library and it's REST framework, databases, real time communication and etc.
 
-This project is being made solely for portfolio and learning of python's Django library and it's REST framework, databases, real time communication and cyber security.
+Codestack for this project includes:
+ - Backend: Django as the backend framework, MySQL as a database, Redis as a real-time database for conferences and celery, docker compose and dockerfile for deployment.
+ - Frontend: No frameworks were used for this one due to the complexity of this project and my lack of knowledge of React.js. So this one goes as vanilla JS, css and HTML. 
+
+**To view the deployment process go to eduPlatform folder**
