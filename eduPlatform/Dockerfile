@@ -10,9 +10,6 @@ COPY requirements.txt /app/
 RUN apt-get -y update && apt-get -y upgrade
 RUN apt-get -y install python3-dev default-libmysqlclient-dev build-essential pkg-config coturn
 
-RUN mkdir -p /home/django/uploads && \
-    chown -R django:django /home/django/uploads
-
 WORKDIR /app
 
 RUN python3 -m pip install --upgrade pip
