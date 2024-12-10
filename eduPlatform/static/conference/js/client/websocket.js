@@ -90,8 +90,13 @@ async function handlePersonalSignaling(type, from, data) {
 }
 
 async function onWebSocketRecieve(event) {
+    if (!WebRTCStarted) return
+
     const data = JSON.parse(event.data)
-    const { type, from, to } = data;
+    var { type, from, to } = data;
+
+    from = Number(from)
+    to = Number(to)
 
     const isGlobal = !to;
     const isTargeted = to === userId;
