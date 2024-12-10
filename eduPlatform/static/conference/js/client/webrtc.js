@@ -140,6 +140,7 @@ async function onPeerConnected(peer, remoteUserId) {
     }
 
     updateUserStatus(remoteUserId, peer.isListener ? "is-listener" : "is-muted")
+    reconnectionAttempts[remoteUserId] = 0
 
     ws.send(JSON.stringify({
         type: "toggle-microphone",
@@ -169,11 +170,13 @@ async function onPeerCreation(peerConnection, remoteUserId) {
         reconnectionAttempts[remoteUserId] = 0
     }
 
+    peerConnection.isOfferer = false
+
     await addUserToList(remoteUserId)
 }
 
 function onConnectionFailure(peer, remoteUserId) {
-    if (reconnectionAttempts[remoteUserId] < 5) {
+    if (reconnectionAttempts[remoteUserId] < 5 && peer.isOfferer) {
         reconnectionAttempts[remoteUserId] += 1
         log(`Failed to connect to user ${remoteUserId}, triggering ICE restart. (Attempt: ${reconnectionAttempts[remoteUserId]})`, "warn", false)
 
@@ -324,6 +327,8 @@ async function connectUser(remoteUserId, defaultMediaStreamId, isListener = fals
 
     await createOffer(remoteUserId)
     const peer = peers[remoteUserId]
+
+    peer.isOfferer = true
 
     peer.streamMap.set("default_stream", defaultMediaStreamId)
     peer.streamMap.onUpdate()
