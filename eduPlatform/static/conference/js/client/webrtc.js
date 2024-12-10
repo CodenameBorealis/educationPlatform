@@ -10,6 +10,7 @@ var peers = {}
 var peerData = {}
 
 var candidateQueue = {}
+var reconnectionAttempts = {}
 
 function disconnectUser(userId) {
     if (peers[userId]) {
@@ -25,38 +26,43 @@ function disconnectUser(userId) {
     log(`Closed peer connection with user-${userId}`, "LOG", false)
 }
 
-async function handleOffer(offer, remoteUserId, is_listener=false, default_media_id) {
+async function handleOffer(offer, remoteUserId, is_listener = false, default_media_id) {
     if (!peers[remoteUserId]) {
         await createPeerConnection(remoteUserId)
     }
 
-    const peer = peers[remoteUserId]
-
-    await peer.setRemoteDescription(new RTCSessionDescription(offer))
-
-    const answer = await peer.createAnswer()
-    await peer.setLocalDescription(answer)
-
-    peer.isListener = is_listener
-    if (!is_listener) {
-        await setPeerDefaultMediaStream(remoteUserId, default_media_id)
+    try {
+        const peer = peers[remoteUserId]
+    
+        await peer.setRemoteDescription(new RTCSessionDescription(offer))
+    
+        const answer = await peer.createAnswer()
+        await peer.setLocalDescription(answer)
+    
+        peer.isListener = is_listener
+        if (!is_listener) {
+            await setPeerDefaultMediaStream(remoteUserId, default_media_id)
+        }
+    
+        ws.send(JSON.stringify({
+            type: 'answer',
+            to: Number(remoteUserId),
+            answer
+        }))
+    
+        log("Handled offer from " + remoteUserId + " and sent an answer")
+    } catch (error) {
+        log(`Failed to handle offer from user ${remoteUserId}, check console for more info.`, 'error', false)
+        console.log(error)
     }
-
-    ws.send(JSON.stringify({
-        type: 'answer',
-        to: Number(remoteUserId),
-        answer
-    }))
-
-    log("Handled offer from " + remoteUserId + " and sent an answer")
 }
 
-async function createOffer(remoteUserId) {
+async function createOffer(remoteUserId, iceRestart = false) {
     if (!peers[remoteUserId]) {
         await createPeerConnection(remoteUserId);
     }
 
-    const offer = await peers[remoteUserId].createOffer(isListener ? { offerToReceiveVideo: true, offerToReceiveAudio: true } : {})
+    const offer = await peers[remoteUserId].createOffer(isListener ? { offerToReceiveVideo: true, offerToReceiveAudio: true, iceRestart: iceRestart } : { iceRestart: iceRestart })
     await peers[remoteUserId].setLocalDescription(offer)
 
     ws.send(JSON.stringify({
@@ -124,7 +130,7 @@ async function onPeerConnected(peer, remoteUserId) {
                 type: "start-screenshare",
                 mediaId: screenShareStream.id
             }))
-            
+
             peerAddScreenShareStream(peer, screenShareStream)
         }
     }
@@ -144,8 +150,8 @@ async function onPeerConnected(peer, remoteUserId) {
 
 async function onPeerCreation(peerConnection, remoteUserId) {
     if (candidateQueue[remoteUserId]) {
-        candidateQueue[remoteUserId].forEach(candidate => addIceCandidate(remoteUserId, candidate));
-        delete candidateQueue[remoteUserId];
+        candidateQueue[remoteUserId].forEach(candidate => addIceCandidate(remoteUserId, candidate))
+        delete candidateQueue[remoteUserId]
     }
 
     if (!isListener) {
@@ -159,11 +165,27 @@ async function onPeerCreation(peerConnection, remoteUserId) {
         }
     }
 
+    if (!reconnectionAttempts[remoteUserId]) {
+        reconnectionAttempts[remoteUserId] = 0
+    }
+
     await addUserToList(remoteUserId)
 }
 
 function onConnectionFailure(peer, remoteUserId) {
+    if (reconnectionAttempts[remoteUserId] < 5) {
+        reconnectionAttempts[remoteUserId] += 1
+        log(`Failed to connect to user ${remoteUserId}, triggering ICE restart. (Attempt: ${reconnectionAttempts[remoteUserId]})`, "warn", false)
+
+        updateUserStatus(remoteUserId, "reconnecting")
+
+        createOffer(remoteUserId, true)
+        return
+    }
+
     showAlert("Error", `Failed to establish a connection with user ${remoteUserId}, please try re-joining the conference, if this issue persists, contact technical support.`, "error", 10000)
+    log(`Failed to establish connection with user ${remoteUserId}, marking connection as failed.`, 'error', false)
+
     updateUserStatus(remoteUserId, "failed")
 
     peer.failed = true
@@ -203,7 +225,9 @@ function onConnectionChange(remoteUserId, peer, state) {
 async function createPeerConnection(remoteUserId) {
     const configuration = {
         iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
+            {
+                urls: 'stun:stun.l.google.com:19302'
+            },
             {
                 urls: 'turn:turn.demodeck.ru:3478',
                 username: 'turnServerAdmin',
@@ -213,9 +237,9 @@ async function createPeerConnection(remoteUserId) {
     }
 
     var peerConnection = new RTCPeerConnection(configuration)
-    
+
     peerConnection.streamMap = new Map()
-    peerConnection.streamMap.onUpdate = () => {}
+    peerConnection.streamMap.onUpdate = () => { }
     peerConnection.failed = false
 
     peerConnection.onicecandidate = (event) => {
@@ -264,7 +288,7 @@ async function createPeerConnection(remoteUserId) {
 
     peerConnection.oniceconnectionstatechange = () => {
         const state = peerConnection.iceConnectionState;
-        
+
         log(`User-${remoteUserId} - ICE Connection State: ${state}`, state === "failed" || state === "disconnected" ? "warn" : "", false);
         onICEConnectionChange(remoteUserId, peerConnection, state)
     };
@@ -295,7 +319,7 @@ function setPeerDefaultMediaStream(remoteUserId, id) {
     log("Set default remote stream id for user " + remoteUserId + " to " + id)
 }
 
-async function connectUser(remoteUserId, defaultMediaStreamId, isListener=false) {
+async function connectUser(remoteUserId, defaultMediaStreamId, isListener = false) {
     log("Connecting user-" + remoteUserId, "LOG", false)
 
     await createOffer(remoteUserId)
