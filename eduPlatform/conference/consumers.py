@@ -5,6 +5,10 @@ from channels.db import database_sync_to_async as dsa
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
 
+'''
+This is the signaling server used for handling web conferences
+API endpoints are located in the views.py file
+'''
 
 class SignalingConsumer(AsyncWebsocketConsumer):
     def conference_exists(self, conference_token):

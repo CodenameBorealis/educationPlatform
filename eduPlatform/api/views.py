@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from . import serializer
 from . import models
 
-# Create your views here.
+# This is an unused and unmaintened section of the code which was used for rest_framework testing
 
 @api_view(["GET"])
 def apiTest1(request, *args, **kwargs):
