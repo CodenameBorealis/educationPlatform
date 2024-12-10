@@ -46,9 +46,14 @@ async function addVideo(id, src, micEnabled=false) {
 }
 
 function peerAddWebcam(remoteUserId, videoTrack, stream) {
-    const peer = peers[remoteUserId]
-    const sender = peer.addTrack(videoTrack, stream)
-    peer.videoCamSender = sender
+    try {
+        const peer = peers[remoteUserId]
+        const sender = peer.addTrack(videoTrack, stream)
+        peer.videoCamSender = sender
+    } catch (error) {
+        log("Failed to add video to peer connection, check console for more info", "error", false)
+        console.log(error)
+    }
 }
 
 async function peerRenegotiateWebcam(remoteUserId, videoTrack, stream) {

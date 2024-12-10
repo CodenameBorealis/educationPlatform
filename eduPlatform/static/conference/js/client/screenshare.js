@@ -54,13 +54,18 @@ function peerAddScreenShareStream(peer, stream) {
         return
     }
 
-    if (audio) {
-        const audioSender = peer.addTrack(stream.getAudioTracks()[0], stream)
-        peer.screenAudioSender = audioSender
+    try {
+        if (audio) {
+            const audioSender = peer.addTrack(stream.getAudioTracks()[0], stream)
+            peer.screenAudioSender = audioSender
+        }
+    
+        const videoSender = peer.addTrack(stream.getVideoTracks()[0], stream)
+        peer.screenVideoSender = videoSender
+    } catch (error) {
+        log("Failed to add screenshare stream, check console for more errors.", "error", false)
+        console.log(error)
     }
-
-    const videoSender = peer.addTrack(stream.getVideoTracks()[0], stream)
-    peer.screenVideoSender = videoSender
 }
 
 function peerRemoveScreenShareStream(peer) {
