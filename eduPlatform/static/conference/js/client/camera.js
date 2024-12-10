@@ -90,7 +90,7 @@ async function turnCameraOff() {
 
         ws.send(JSON.stringify({
             type: "webcam_stop",
-            to: id
+            to: Number(id)
         }))
     }
 
