@@ -1,3 +1,5 @@
+// The JS code for this project is low-key shit, we both know that, yell at me for it later
+
 const connectionOverlay = document.getElementById("connectionOverlay")
 const connectAudio = document.getElementById("connectAudio")
 const connectMic = document.getElementById("connectMic")
