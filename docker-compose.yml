@@ -6,6 +6,7 @@ services:
   daphne:
     build: ./eduPlatform
     command: daphne -b 0.0.0.0 -p 8000 eduPlatform.asgi:application
+    restart: unless-stopped
     ports:
       - "8000:8000"
     env_file:
@@ -20,6 +21,7 @@ services:
   celery-worker:
     build: ./eduPlatform
     command: celery -A eduPlatform worker --loglevel=info
+    restart: unless-stopped
     depends_on:
       - redis
     networks:
@@ -29,6 +31,7 @@ services:
     
   redis:
     image: redis:latest
+    restart: unless-stopped
     ports:
       - "6379:6379"
     networks:
