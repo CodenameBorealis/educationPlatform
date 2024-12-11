@@ -8,5 +8,6 @@ urlpatterns = [
     path("api/get-message-history/", views.GetMessageHistory.as_view()),
     path("api/get-data/", views.GetConferenceData.as_view()),
     path("api/start/", views.StartConference.as_view()),
-    path("api/end/", views.EndConference.as_view())
+    path("api/end/", views.EndConference.as_view()),
+    path("api/upload-presentation/", views.UploadPresentation.as_view())
 ]

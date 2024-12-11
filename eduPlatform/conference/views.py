@@ -1,25 +1,28 @@
+import secrets
+
 import rest_framework.status as status
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 from django.shortcuts import render
 from django.views import View
 from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils.timezone import now
+from django.conf import settings
 
 from datetime import timedelta
+from os import path
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
-
 from celery.app.control import Control
 
-from .models import Conference as ConferenceModel
 from .mixins import ConferencePermissionsMixin
-
 from . import tasks as tasks
+from . import serializers
+
 
 class Conference(View):
     def get(self, request, token, *args, **kwargs):
@@ -64,7 +67,7 @@ class GetConferenceData(APIView, ConferencePermissionsMixin):
             "ended": conference.ended,
             "start_time": conference.start_time,
             "end_time": conference.end_time,
-            "max_duration": conference.max_conference_duration
+            "max_duration": conference.max_conference_duration,
         }
 
         return Response(data, status=status.HTTP_200_OK)
@@ -138,14 +141,47 @@ class EndConference(APIView, ConferencePermissionsMixin):
                 "Cannot stop a conference that hasn't been started yet.",
                 status=status.HTTP_400_BAD_REQUEST,
             )
-            
+
         if conference.celery_task_id:
             control = Control(app=tasks.end_conference.app)
             control.revoke(conference.celery_task_id, terminate=True)
-            
+
             conference.celery_task_id = None
             conference.save()
 
         tasks.end_conference(conference.token)
 
         return Response("Successfully ended the conference.", status=status.HTTP_200_OK)
+
+
+class UploadPresentation(APIView, ConferencePermissionsMixin):
+    """
+    An API call located at /conference/api/upload-presentation/?token=<token>
+
+    Used by hosts or co-hosts for uploading presentations or documents to the server
+    which will be processed with a celery task and later loaded on all the clients of the conference
+    """
+
+    upload_path = settings.UPLOAD_DIR / "documents"
+
+    def post(self, request, *args, **kwargs):
+        conference = self.validate_request(request)
+        serializer = serializers.PresentationUploadSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        uploaded_file = serializer.validated_data["file"]
+        extension = path.splitext(uploaded_file.name)[1]
+        save_path = self.upload_path / f"{secrets.token_hex(16)}{extension}"
+
+        with open(save_path, "wb+") as destination:
+            for chunk in uploaded_file.chunks():
+                destination.write(chunk)
+                
+        result = tasks.process_document.apply_async((conference.token, str(save_path)))
+    
+        return Response(
+            {"task_id": result.id, "success": True},
+            status=status.HTTP_200_OK,
+        )
