@@ -1,3 +1,6 @@
+const screenshareBtn = document.getElementById("screenShare")
+const presentationBtn = document.getElementById("presentation")
+
 function addCoHost(remoteUserId) {
     if (!isHost || !remoteUserId) {
         return
@@ -26,6 +29,7 @@ function removeCoHost(remoteUserId) {
 
 function loadAsCoHost() {
     screenshareBtn.style.display = "block"
+    presentationBtn.style.display = "block"
 
     screenshareBtn.addEventListener("click", async () => {
         if (!WebRTCStarted || (isSharingScreen && !screenShareSelf)) {
@@ -49,6 +53,14 @@ function loadAsCoHost() {
         }
     })
 
+    presentationBtn.addEventListener("click", () => {
+        if (!WebRTCStarted) {
+            return
+        }
+
+        promptPresentationSelection()
+    })
+
     isHost = true
     log("Loaded co-host view")
 }
@@ -66,6 +78,8 @@ async function unloadCoHost() {
     screenshareBtn.style.display = "none"
     screenshareBtn.removeEventListener("click")
     
+    presentationBtn.style.display = "none"
+
     isHost = false
     log("Unloaded host view")
 }

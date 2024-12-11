@@ -4,8 +4,6 @@ const connectionOverlay = document.getElementById("connectionOverlay")
 const connectAudio = document.getElementById("connectAudio")
 const connectMic = document.getElementById("connectMic")
 
-const screenshareBtn = document.getElementById("screenShare")
-
 const closeCameraSelectorBtn = document.getElementById("close-camera-selector")
 const openCameraSelectorBtn = document.getElementById("start-camera-button")
 

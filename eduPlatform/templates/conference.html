@@ -133,6 +133,11 @@
                     <img src="{% static 'conference/img/video-camera.png' %}" alt="" class="icon">
                 </button>
 
+                <button class="btn-control" data-tooltip="Presentation" id="presentation" style="display: none;">
+                    <img src="{% static 'conference/img/document.png' %}" alt="" class="icon">
+                    <input type="file"  style="display: none;" id="fileInput" accept=".pdf, .doc, .docx, .pptx, .ppt">
+                </button>
+
                 <button class="btn-control" data-tooltip="Share your screen" id="screenShare" style="display: none;">
                     <img src="{% static 'conference/img/screenshare.png' %}" alt="" class="icon">
                 </button>
@@ -177,6 +182,7 @@
 <script src="{% static 'conference/js/client/websocket.js' %}"></script>
 <script src="{% static 'conference/js/client/webrtc.js' %}"></script>
 <script src="{% static 'conference/js/client/screenshare.js' %}"></script>
+<script src="{% static 'conference/js/client/presentation.js' %}"></script>
 <script src="{% static 'conference/js/client/chat.js' %}"></script>
 
 <script src="{% static 'conference/js/html5client.js' %}"></script>
