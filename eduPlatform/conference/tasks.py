@@ -72,7 +72,7 @@ def process_document(self, conference, document, *args, **kwargs):
     # If the given document is not a .pdf file, try to convert it; if it is a .pdf file, just clone it to the output folder.
     if extension.lower() != ".pdf":
         try:
-            self.update_state(state="CONVERTING")
+            self.update_state(state="CONVERTING", meta={"message": "Converting to .pdf"})
             subprocess.run(soffice_command, check=True)
 
             print("Converted file successfully")
@@ -94,11 +94,11 @@ def process_document(self, conference, document, *args, **kwargs):
         raise Ignore()
 
     # Set status as processing and use pdf2image to split the .pdf file into a bunch of images
-    self.update_state(state="PROCESSING")
+    self.update_state(state="PROCESSING", meta={"message": "Processing"})
 
     # Try to process the .pdf file
     try:
-        images = convert_from_path(pdf_output_path, 500, timeout=10)
+        images = convert_from_path(pdf_output_path, 300, timeout=60)
     except Exception as e:
         print(f"Something went wrong during .pdf processing, error: {e}")
         self.update_state(
