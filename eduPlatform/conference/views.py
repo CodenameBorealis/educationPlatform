@@ -3,6 +3,7 @@ import secrets
 import rest_framework.status as status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 
 from django.shortcuts import render
 from django.views import View
@@ -17,6 +18,7 @@ from os import path
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
+from celery.result import AsyncResult
 from celery.app.control import Control
 
 from .mixins import ConferencePermissionsMixin
@@ -173,15 +175,42 @@ class UploadPresentation(APIView, ConferencePermissionsMixin):
 
         uploaded_file = serializer.validated_data["file"]
         extension = path.splitext(uploaded_file.name)[1]
-        save_path = self.upload_path / f"{secrets.token_hex(16)}{extension}"
+        file_token = secrets.token_hex(16)
+        save_path = self.upload_path / f"{file_token}{extension}"
 
         with open(save_path, "wb+") as destination:
             for chunk in uploaded_file.chunks():
                 destination.write(chunk)
-                
+
         result = tasks.process_document.apply_async((conference.token, str(save_path)))
-    
+
         return Response(
-            {"task_id": result.id, "success": True},
+            {"task_id": result.id, "file_token": file_token, "success": True},
             status=status.HTTP_200_OK,
         )
+
+
+class GetTaskInformation(APIView):
+    """
+    An API call located at /conference/api/get-task-info/?id=<task id>
+
+    Used for fetching information about celery tasks; for example get status of
+    file conversion which was uploaded by the host as a presentation
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        id = request.GET.get("id")
+        if not id:
+            return Response("No task ID was given.", status=status.HTTP_400_BAD_REQUEST)
+
+        result = AsyncResult(id)
+        return_data = {
+            "status": result.status,
+            "result": result.result,
+            "successful": result.successful(),
+            "failed": result.failed(),
+        }
+
+        return Response(return_data, status=status.HTTP_200_OK)
