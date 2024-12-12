@@ -3,7 +3,7 @@ async function getHttpAsync(url) {
         const response = await fetch(url, { method: 'GET' });
         
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            console.log(`HTTP error! Status: ${response.status}`);
         }
         
         return await response;
@@ -26,7 +26,7 @@ async function postHttpAsync(url, data = {}, awaitForResponse = false, callback 
 
         if (awaitForResponse) {
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                console.log(`HTTP error! Status: ${response.status}`);
             }
 
             if (awaitForJson) {
@@ -36,6 +36,7 @@ async function postHttpAsync(url, data = {}, awaitForResponse = false, callback 
             }
 
             callback({});
+            return response
         }
     } catch (error) {
         console.error(`Client request failed: ${error.message}`, error.stack);
@@ -54,7 +55,7 @@ async function postFormHttpAsync(url, formData, awaitForResponse = false, callba
 
         if (awaitForResponse) {
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                console.log(`HTTP error! Status: ${response.status}`);
             }
 
             if (awaitForJson) {
