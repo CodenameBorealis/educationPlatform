@@ -3,6 +3,8 @@ import uuid
 from django.db import models
 from django.contrib.auth import get_user_model
 
+from django.utils.timezone import now
+
 # Database model for the conference
 class Conference(models.Model):
     host = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name="hosted_conferences")
@@ -31,6 +33,7 @@ class Conference(models.Model):
     
 # Database model for the presentation that's loaded by the host during the conferences
 class Presentation(models.Model):
+    time_uploaded = models.DateTimeField(default=now)
     pageCount = models.IntegerField(default=0)
     token = models.CharField(max_length=100, unique=True, blank=True, default="")
     
