@@ -7,3 +7,4 @@ etc.txt
 .env.production
 eduPlatform/db.sqlite3
 eduPlatform/uploads
+uploads/
