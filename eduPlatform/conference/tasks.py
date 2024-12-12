@@ -75,7 +75,7 @@ def process_document(self, conference, document, *args, **kwargs):
 
     # Command used to convert non-pdf files to .pdf format using libreOffice
     soffice_command = [
-        "soffice.exe",
+        os.getenv("LIBREOFFICE_COMMAND", "soffice"),
         "--headless",
         "--convert-to",
         "pdf",
