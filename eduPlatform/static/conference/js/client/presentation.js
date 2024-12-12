@@ -1,10 +1,136 @@
 const fileInput = document.getElementById("fileInput")
 
+const presentationFrame = document.getElementById("presentation-frame")
+const presentationSlide = document.getElementById("presentation-slide")
+
+const presControls = document.getElementById("pres-controls")
+const presPages = document.getElementById("pres-pages")
+
 var presentationRunning = false
 var presentingSelf = false
 
-async function promptPresentationSelection() {
+var fileSelectionDisabled = false
+
+var currentPage = 0
+var maxPages
+var presentationToken
+
+function loadPresentation() {
+    if (isSharingScreen || !presentationRunning) {
+        return
+    }
+
+    presentationFrame.style.display = "flex"
+
+    if (presentingSelf) {
+        presControls.style.display = "flex"
+    }
+}
+
+function unloadPresentation() {
+    presentationFrame.style.display = "none"
+
+    if (presentingSelf) {
+        presControls.style.display = "none"
+    }
+}
+
+async function setPresentationPage(pageNumber) {
+    if (!presentationRunning) {
+        return
+    }
+
+    if (currentPage === pageNumber) {
+        return
+    }
+
+    const slideImage = await getHttpAsync(`/conference/api/get-presentation-slide/?id=${presentationToken}&page=${pageNumber}`)
+    if (!slideImage) {
+        log("Failed to load slide image, check console for more info.", "error", false)
+        return
+    }
+
+    const blob = await slideImage.blob()
+    const urlObject = URL.createObjectURL(blob)
+
+    presentationSlide.src = urlObject
+    currentPage = pageNumber
+
+    if (presentingSelf) { 
+        presPages.innerHTML = `${pageNumber + 1}/${maxPages + 1}`
+
+        ws.send(JSON.stringify({
+            type: "page-switch",
+            page: currentPage
+        }))
+    }
+}
+
+async function startPresentation(token) {
     if (!WebRTCStarted || presentationRunning) {
+        return
+    }
+
+    const request = await getHttpAsync(`/conference/api/get-presentation-page-count/?id=${token}`)
+    if (!request) {
+        showAlert("Error", "Failed to start presentation.", "error")
+        log("Failed to start presentation, get page count request failed.", "error", false)
+
+        return
+    }
+
+    const json = await request.json()
+    if (!json.pages) {
+        showAlert("Error", "Failed to start presentation.", "error")
+        log("Failed to start presentation, get page count request doesn't contain pages field.", "error", false)
+
+        return
+    }
+
+    presentationToken = token
+    maxPages = Number(json.pages)
+    currentPage = -1
+
+    presentingSelf = true
+    presentationRunning = true
+
+    loadPresentation()
+    setPresentationPage(0)
+
+    showAlert("Presentation", "Loaded presentation.")
+
+    presentationBtn.classList.add("control-on")
+
+    ws.send(JSON.stringify({
+        type: "start-presentation",
+        token: token,
+        page: currentPage
+    }))
+}
+
+function stopPresentation() {
+    if (!presentationRunning || !presentingSelf) {
+        return
+    }
+
+    presentationRunning = false
+    presentingSelf = false
+
+    presentationBtn.classList.remove("control-on")
+
+    unloadPresentation()
+
+    ws.send(JSON.stringify({
+        type: "stop-presentation",
+    }))
+}
+
+async function promptPresentationSelection() {
+    if (!WebRTCStarted || presentationRunning || isSharingScreen) {
+        return
+    }
+
+    if (fileSelectionDisabled) {
         return
     }
 
@@ -38,7 +164,7 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
         latestStatus = json["status"]
         updateCallback(json)
 
-        if (updates > 120) {
+        if (updates > 60) {
             showAlert("Error", "Processing presentation took too long.", "error")
             clearInterval(interval)
             
@@ -50,18 +176,22 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
         if (latestStatus === "SUCCESS") {
             successCallback(json)
             clearInterval(interval)
-        } else if (json["failed"] === true) {
+        } else if (json["failed"] === true || latestStatus === "HANDLER_FAILURE") {
             failCallback(json)
 
-            showAlert("Error", `Failed to upload presentation: ${json["result"]["message"] || "No error message given."}`)
+            showAlert("Error", `Failed to upload presentation: ${json["result"]["error"] || "No error message given."}`, 'error')
             clearInterval(interval)
         }
     }
 
-    interval = setInterval(update, 500)
+    interval = setInterval(update, 1000)
 }
 
 async function onFileSelection() {
+    if (fileSelectionDisabled) {
+        return
+    }
+
     if (fileInput.files.length <= 0) {
         return
     }
@@ -69,6 +199,8 @@ async function onFileSelection() {
     if (!isHost) {
         return
     }
+
+    fileSelectionDisabled = true
 
     const file = fileInput.files[0]
     const formdata = new FormData()
@@ -99,10 +231,12 @@ async function onFileSelection() {
     const { success, task_id, file_token} = json
     if (!success) {
         showAlert("Error", "Server failed to process the request.", "error")
+        fileSelectionDisabled = false
+
         return
     }
 
-    log(`Presentation task started successfully, task id: ${task_id}, file token: ${file_token}`)
+    log(`Presentation task started successfully, task id: ${task_id}, token: ${file_token}`)
     trackPresentationTask(
         task_id,
         (data) => {
@@ -111,10 +245,12 @@ async function onFileSelection() {
         },
         (data) => {
             infoFrame.remove()
-            showAlert("Success", "Success")
+            startPresentation(file_token)
+            fileSelectionDisabled = false
         },
         (data) => {
             infoFrame.remove()
+            fileSelectionDisabled = false
         }
     )
 }

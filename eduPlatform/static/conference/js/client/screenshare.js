@@ -85,6 +85,10 @@ async function startScreenShare() {
         return
     }
 
+    if (presentationRunning) {
+        return
+    }
+
     if (!isHost) {
         showAlert("Access denied.", "You must be a host/co-host of this conference to share your screen.", "error")
         return
@@ -125,7 +129,7 @@ async function startScreenShare() {
 }
 
 async function stopScreenShare() {
-    if (!WebRTCStarted || !isSharingScreen) {
+    if (!WebRTCStarted || !isSharingScreen || presentationRunning) {
         return
     }
 

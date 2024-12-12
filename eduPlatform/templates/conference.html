@@ -110,11 +110,19 @@
             <div class="video-grid" id="videos"></div>
 
             <div class="presentation">
+                <p>No presentation loaded yet.</p>
                 <div id="screenshare-frame">
                     <video id="screen-share-video" class="screenshare-video"></video>
                     <audio id="screen-share-audio"></audio>
                 </div>
-                <p>No presentation loaded yet.</p>
+                <div id="presentation-frame">
+                    <img alt="Failed to load slide." id="presentation-slide">
+                    <div id="pres-controls" class="presentation-controls">
+                        <button id="pres-prev">Previous</button>
+                        <span id="pres-pages">1/13</span>
+                        <button id="pres-next">Next</button>
+                    </div>
+                </div>
             </div>
 
             <div class="controls">

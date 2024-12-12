@@ -135,6 +135,15 @@ async function onPeerConnected(peer, remoteUserId) {
         }
     }
 
+    if (presentingSelf) {
+        ws.send(JSON.stringify({
+            to: remoteUserId,
+            type: "start-presentation",
+            token: presentationToken,
+            page: currentPage
+        }))
+    }
+
     if (areChangesMade) {
         await createOffer(remoteUserId)
     }

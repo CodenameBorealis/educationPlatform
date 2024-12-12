@@ -38,6 +38,41 @@ async function handleGlobalSignaling(type, from, data) {
                 return
             }
             disconnectUser(from)
+        },
+        "start-presentation": async () => {
+            if (!data.token) {
+                log("Ignored start-presentation request, no token given.", "warn", false)
+                return
+            }
+
+            currentPage = -1
+            presentationToken = data.token
+            presentationRunning = true
+
+            loadPresentation()
+            setPresentationPage(data.page || 0)
+        },
+        "page-switch": async () => {
+            if (!presentationRunning) {
+                return
+            }
+
+            if (!data.page) {
+                log("Ignored page-switch request, no page specified.", "warn", false)
+            }
+            
+            setPresentationPage(data.page)
+        },
+        "stop-presentation": async () => {
+            if (!presentationRunning) {
+                return
+            }
+
+            currentPage = -1
+            presentationToken = null
+            presentationRunning = false
+
+            unloadPresentation()
         }
     }
 
