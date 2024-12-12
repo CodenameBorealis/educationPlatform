@@ -28,6 +28,8 @@ services:
       - django_network
     env_file:
       - .env.production
+    volumes:
+      - ./uploads:/home/django/uploads
     
   celery-beat-worker:
     build: ./eduPlatform
@@ -39,6 +41,8 @@ services:
       - django_network
     env_file:
       - .env.production
+    volumes:
+      - ./uploads:/home/django/uploads
 
   redis:
     image: redis:latest
