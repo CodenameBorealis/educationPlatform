@@ -38,7 +38,7 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
         latestStatus = json["status"]
         updateCallback(json)
 
-        if (updates > 60) {
+        if (updates > 120) {
             showAlert("Error", "Processing presentation took too long.", "error")
             clearInterval(interval)
             
@@ -58,7 +58,7 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
         }
     }
 
-    interval = setInterval(update, 1000)
+    interval = setInterval(update, 500)
 }
 
 async function onFileSelection() {
