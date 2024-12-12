@@ -108,6 +108,12 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             await self.stop_screenshare(
                 {"from": self.user_id, "type": "stop-screenshare"}
             )
+            
+        # Check if user is running a presentation
+        if self.user_id == self.presentationUserID and self.presentationRunning:
+            await self.stop_presentation(
+                {"from": self.user_id, "type": "stop-presentation"}
+            )
 
         # If the user was a cohost before disconnecting, mockup a data input as host and remove the user from the cohosts list
         if self.user_id in self.coHostList:
