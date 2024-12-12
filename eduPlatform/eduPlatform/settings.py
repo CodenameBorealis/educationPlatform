@@ -160,8 +160,6 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TASK_TIME_LIMIT = 600
 CELERY_TASK_SOFT_TIME_LIMIT = 1200
-CELERY_TASK_ALWAYS_EAGER = not IS_PRODUCTION
-CELERY_TASK_EAGER_PROPAGATES = not IS_PRODUCTION
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
