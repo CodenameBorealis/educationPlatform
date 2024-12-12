@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "channels",
     "corsheaders",
     "rest_framework",
+    "django_celery_beat",
     # Own apps
     "pages",
     "api",
