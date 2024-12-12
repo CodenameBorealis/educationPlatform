@@ -1,3 +1,4 @@
+from datetime import timedelta
 from django.utils.timezone import now
 from django.conf import settings
 
@@ -64,7 +65,7 @@ def process_document(self, conference, document, *args, **kwargs):
         if os.path.exists(document):
             print("Removed original document")
             os.remove(document)
-        
+
         if os.path.exists(output_dir):
             print("Removed output directory")
             shutil.rmtree(output_dir)
@@ -96,7 +97,8 @@ def process_document(self, conference, document, *args, **kwargs):
         except subprocess.CalledProcessError as e:
             print(f"Failed to convert document {filename}, error: {e}")
             self.update_state(
-                state="HANDLER_FAILURE", meta={"error": "Failed to convert the document."}
+                state="HANDLER_FAILURE",
+                meta={"error": "Failed to convert the document."},
             )
 
             __cleanup__()
@@ -107,7 +109,9 @@ def process_document(self, conference, document, *args, **kwargs):
     # Check if the converted file actually exists in the output directory, if not raise task failure
     if not os.path.exists(pdf_output_path):
         print("Unable to locate converted file.")
-        self.update_state(state="HANDLER_FAILURE", meta={"error": "Internal server error."})
+        self.update_state(
+            state="HANDLER_FAILURE", meta={"error": "Internal server error."}
+        )
 
         __cleanup__()
         raise Ignore()
@@ -137,5 +141,27 @@ def process_document(self, conference, document, *args, **kwargs):
     os.remove(pdf_output_path)
 
     # Save the information in the database
-    presentation = Presentation.objects.create(token=filename, pageCount=len(images)-1)
+    presentation = Presentation.objects.create(
+        token=filename, pageCount=len(images) - 1, time_uploaded=now()
+    )
     presentation.save()
+
+
+@shared_task()
+def cleanup_old_presentations():
+    output_dir = settings.UPLOAD_DIR / "processed_documents"
+    
+    expiration_time = now() - timedelta(hours=3)
+    expired_presentations = Presentation.objects.filter(time_uploaded__lt=expiration_time)
+    
+    for presentation in expired_presentations:
+        presentation_dir = output_dir / presentation.token
+        if not os.path.exists(presentation_dir):
+            continue
+        
+        shutil.rmtree(presentation_dir)
+        
+    count = expired_presentations.count()
+    expired_presentations.delete()
+    
+    return f"Removed {count} expired presentations."
