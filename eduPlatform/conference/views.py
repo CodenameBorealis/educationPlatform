@@ -1,4 +1,5 @@
 import secrets
+import os
 
 import rest_framework.status as status
 from rest_framework.views import APIView
@@ -11,6 +12,7 @@ from django.core.cache import cache
 from django.shortcuts import redirect
 from django.utils.timezone import now
 from django.conf import settings
+from django.http.response import FileResponse
 
 from datetime import timedelta
 from os import path
@@ -24,6 +26,7 @@ from celery.app.control import Control
 from .mixins import ConferencePermissionsMixin
 from . import tasks as tasks
 from . import serializers
+from .models import Presentation
 
 
 class Conference(View):
@@ -214,3 +217,73 @@ class GetTaskInformation(APIView):
         }
 
         return Response(return_data, status=status.HTTP_200_OK)
+
+
+class GetPresentationSlide(APIView):
+    """
+    An API call located at /conference/api/get-presentation-slide/?id=<presentation id>&page=<page number>
+    Used for fetching a specific slide of an already compiled and ready presentation
+    """
+
+    permission_classes = [IsAuthenticated]
+    documents_path = settings.UPLOAD_DIR / "processed_documents"
+
+    def get(self, request, *args, **kwargs):
+        token = request.GET.get("id")
+        page = request.GET.get("page")
+
+        if not token or not page:
+            return Response(
+                "Token or page number is missing.", status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            presentation = Presentation.objects.get(token=token)
+        except Presentation.DoesNotExist:
+            return Response(
+                "Invalid presentation id given.", status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            page = int(page)
+        except ValueError:
+            return Response("Malformed data given.", status=status.HTTP_400_BAD_REQUEST)
+
+        if presentation.pageCount < page or page < 0:
+            return Response("Invalid page number.", status=status.HTTP_400_BAD_REQUEST)
+
+        directory_path = self.documents_path / token
+        if not os.path.exists(directory_path) or not os.path.exists(
+            directory_path / f"page{page}.jpg"
+        ):
+            return Response(
+                "Directory or file not found.",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        file_handle = open(directory_path / f"page{page}.jpg", "rb")
+        return FileResponse(file_handle, as_attachment=False, filename="slide.jpg")
+
+
+class GetPresentationPageCount(APIView):
+    """
+    An API call located at /conference/api/get-presentation-page-count/?id=<presentation id>
+    Used to get the page count of a certain presentation
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        token = request.GET.get("id")
+        if not token:
+            return Response("Token is missing.", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            presentation = Presentation.objects.get(token=token)
+        except Presentation.DoesNotExist:
+            return Response(
+                "Presentation with given token does not exist.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response({"pages": presentation.pageCount}, status=status.HTTP_200_OK)

@@ -18,7 +18,7 @@ from fpdf import FPDF
 
 from eduPlatform.asgi import application
 from .consumers import SignalingConsumer
-from .models import Conference
+from .models import Conference, Presentation
 from user.tests import BaseUserTest
 
 
@@ -425,3 +425,59 @@ class DocumentUploadTest(BaseUserTest):
         
         self.assertTrue(os.path.exists(file_path))
         shutil.rmtree(file_path)
+      
+        
+class GetSlideTest(BaseUserTest):
+    baseURL = "/conference/api/get-presentation-slide/"
+    requestType = "GET"
+    
+    def setUp(self):
+        self.set_up_client()
+        
+        self.presentation = Presentation.objects.create(token="abc", pageCount=5)
+        self.presentation.save()
+        
+    def test_no_data(self):
+        request = self.client.get(self.baseURL)
+        self.validate_response(request, 400)
+    
+    def test_invalid_token(self):
+        request = self.client.get(f"{self.baseURL}?id=invalid&page=0")
+        self.validate_response(request, 400)
+        
+    def test_invalid_page(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=-1")
+        self.validate_response(request, 400)
+        
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=6")
+        self.validate_response(request, 400)
+    
+    def test_request(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=1")
+        self.validate_response(request, 500)
+        
+
+class GetPageCountTest(BaseUserTest):
+    baseURL = "/conference/api/get-presentation-page-count/"
+    requestType = "GET"
+    
+    def setUp(self):
+        self.set_up_client()
+        
+        self.presentation = Presentation.objects.create(token="abc", pageCount=5)
+        self.presentation.save()
+    
+    def test_no_token(self):
+        request = self.client.get(self.baseURL)
+        self.validate_response(request, 400)
+    
+    def test_invalid_token(self):
+        request = self.client.get(f"{self.baseURL}?id=invalid")
+        self.validate_response(request, 400)
+    
+    def test_request(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}")
+        self.validate_response(request, expect_json=True)
+        
+        json = request.json()
+        self.assertEqual(json.get("pages"), 5, "Invalid page count returned.")
