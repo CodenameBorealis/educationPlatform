@@ -16,6 +16,7 @@ from time import sleep
 
 from asgiref.sync import async_to_sync
 from .models import Conference
+from .models import Presentation
 
 
 @shared_task
@@ -54,6 +55,20 @@ def process_document(self, conference, document, *args, **kwargs):
     filename, extension = os.path.splitext(basename)
     output_dir = settings.UPLOAD_DIR / f"processed_documents/{filename}"
 
+    def __cleanup__():
+        # Function that performs a full cleanup if execution fails
+        # It will delete any uploaded files and folders associated with it
+
+        print("Running cleanup")
+
+        if os.path.exists(document):
+            print("Removed original document")
+            os.remove(document)
+        
+        if os.path.exists(output_dir):
+            print("Removed output directory")
+            shutil.rmtree(output_dir)
+
     # Ensure that the output directory exists and is accessible
     os.makedirs(output_dir, exist_ok=True)
 
@@ -72,16 +87,19 @@ def process_document(self, conference, document, *args, **kwargs):
     # If the given document is not a .pdf file, try to convert it; if it is a .pdf file, just clone it to the output folder.
     if extension.lower() != ".pdf":
         try:
-            self.update_state(state="CONVERTING", meta={"message": "Converting to .pdf"})
+            self.update_state(
+                state="CONVERTING", meta={"message": "Converting to .pdf"}
+            )
             subprocess.run(soffice_command, check=True)
 
             print("Converted file successfully")
         except subprocess.CalledProcessError as e:
             print(f"Failed to convert document {filename}, error: {e}")
             self.update_state(
-                state="FAILURE", meta={"error": "Failed to convert the document."}
+                state="HANDLER_FAILURE", meta={"error": "Failed to convert the document."}
             )
 
+            __cleanup__()
             raise Ignore()
     else:
         shutil.copy(document, pdf_output_path)
@@ -89,8 +107,9 @@ def process_document(self, conference, document, *args, **kwargs):
     # Check if the converted file actually exists in the output directory, if not raise task failure
     if not os.path.exists(pdf_output_path):
         print("Unable to locate converted file.")
-        self.update_state(state="FAILURE", meta={"error": "Internal server error."})
+        self.update_state(state="HANDLER_FAILURE", meta={"error": "Internal server error."})
 
+        __cleanup__()
         raise Ignore()
 
     # Set status as processing and use pdf2image to split the .pdf file into a bunch of images
@@ -102,15 +121,21 @@ def process_document(self, conference, document, *args, **kwargs):
     except Exception as e:
         print(f"Something went wrong during .pdf processing, error: {e}")
         self.update_state(
-            state="FAILURE", meta={"error": "An error occured during .pdf processing stage."}
+            state="HANDLER_FAILURE",
+            meta={"error": "An error occured during .pdf processing stage."},
         )
-        
+
+        __cleanup__()
         raise Ignore()
-    
+
     # Save the processed images in the output folder
     for index, image in enumerate(images):
         image.save(output_dir / f"page{index}.jpg", "JPEG")
-        
-    # Cleanup
+
+    # Remove the original document and temp .pdf file
     os.remove(document)
     os.remove(pdf_output_path)
+
+    # Save the information in the database
+    presentation = Presentation.objects.create(token=filename, pageCount=len(images)-1)
+    presentation.save()
