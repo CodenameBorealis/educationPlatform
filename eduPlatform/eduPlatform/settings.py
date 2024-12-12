@@ -34,7 +34,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-dy1$2wcy^w2+j#xb#cl&-ha3yq
 DEBUG = not IS_PRODUCTION
 
 CSRF_TRUSTED_ORIGINS = ["https://demodeck.ru", "https://www.demodeck.ru"]
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "demodeck.ru", "www.demodeck.ru", ".demodeck.ru" ,"31.31.203.209", "0.0.0.0"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"] + os.getenv("ALLOWED_HOSTS", "").split(",")
 CORS_ALLOWED_ORIGINS = [                                                                                                                                                
     "http://127.0.0.1:8000",
     "http://localhost:8000", 
