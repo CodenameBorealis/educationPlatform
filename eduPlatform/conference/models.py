@@ -28,3 +28,11 @@ class Conference(models.Model):
 
     def __str__(self):
         return self.name
+    
+# Database model for the presentation that's loaded by the host during the conferences
+class Presentation(models.Model):
+    pageCount = models.IntegerField(default=0)
+    token = models.CharField(max_length=100, unique=True, blank=True, default="")
+    
+    def __str__(self):
+        return self.token
