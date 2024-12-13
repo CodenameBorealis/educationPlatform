@@ -70,6 +70,16 @@ def process_document(self, conference, document, *args, **kwargs):
             print("Removed output directory")
             shutil.rmtree(output_dir)
 
+    def __error__(error_message):
+        # Function that is called when an error has occured, it sets the task into HANDLER_FAILED state and raises Ignore()
+        self.update_state(
+            state="HANDLER_FAILURE",
+            meta={"error": error_message},
+        )
+
+        __cleanup__()
+        raise Ignore()
+        
     # Ensure that the output directory exists and is accessible
     os.makedirs(output_dir, exist_ok=True)
 
@@ -96,25 +106,14 @@ def process_document(self, conference, document, *args, **kwargs):
             print("Converted file successfully")
         except subprocess.CalledProcessError as e:
             print(f"Failed to convert document {filename}, error: {e}")
-            self.update_state(
-                state="HANDLER_FAILURE",
-                meta={"error": "Failed to convert the document."},
-            )
-
-            __cleanup__()
-            raise Ignore()
+            __error__("Failed to convert the document.")
     else:
         shutil.copy(document, pdf_output_path)
 
     # Check if the converted file actually exists in the output directory, if not raise task failure
     if not os.path.exists(pdf_output_path):
         print("Unable to locate converted file.")
-        self.update_state(
-            state="HANDLER_FAILURE", meta={"error": "Internal server error."}
-        )
-
-        __cleanup__()
-        raise Ignore()
+        __error__("Internal server error.")
 
     # Set status as processing and use pdf2image to split the .pdf file into a bunch of images
     self.update_state(state="PROCESSING", meta={"message": "Processing"})
@@ -123,15 +122,8 @@ def process_document(self, conference, document, *args, **kwargs):
     try:
         images = convert_from_path(pdf_output_path, 300, timeout=60)
     except Exception as e:
-        print(f"Something went wrong during .pdf processing, error: {e}")
-        self.update_state(
-            state="HANDLER_FAILURE",
-            meta={"error": "An error occured during .pdf processing stage."},
-        )
-
-        __cleanup__()
-        raise Ignore()
-
+        __error__("An error occured during .pdf processing stage.")
+        
     # Save the processed images in the output folder
     for index, image in enumerate(images):
         image.save(output_dir / f"page{index}.jpg", "JPEG")
@@ -140,11 +132,15 @@ def process_document(self, conference, document, *args, **kwargs):
     os.remove(document)
     os.remove(pdf_output_path)
 
-    # Save the information in the database
-    presentation = Presentation.objects.create(
-        token=filename, pageCount=len(images) - 1, time_uploaded=now()
-    )
-    presentation.save()
+    try:
+        # Save the information in the database
+        presentation = Presentation.objects.create(
+            token=filename, pageCount=len(images) - 1, time_uploaded=now()
+        )
+        presentation.save()
+    except Exception as e:
+        print(f"Something went wrong while trying to save the document to the database, error: {e}")
+        __error__("Internal server error.")
 
 
 @shared_task()
