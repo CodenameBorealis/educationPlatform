@@ -80,7 +80,7 @@ async function startPresentation(token) {
     }
 
     const json = await request.json()
-    if (!json.pages) {
+    if (json.pages === null || json.pages < 0) {
         showAlert("Error", "Failed to start presentation.", "error")
         log("Failed to start presentation, get page count request doesn't contain pages field.", "error", false)
 
@@ -143,12 +143,9 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
     }
 
     var latestStatus = ""
-    var interval
     var updates = 0
 
     const update = async () => {
-        updates += 1
-
         const result = await getHttpAsync(`/conference/api/get-task-info/?id=${task_id}`)
         if (!result) {
             log("Failed to get task information.", "warn")
@@ -175,16 +172,17 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
 
         if (latestStatus === "SUCCESS") {
             successCallback(json)
-            clearInterval(interval)
         } else if (json["failed"] === true || latestStatus === "HANDLER_FAILURE") {
             failCallback(json)
 
             showAlert("Error", `Failed to upload presentation: ${json["result"]["error"] || "No error message given."}`, 'error')
-            clearInterval(interval)
+        } else {
+            updates += 1
+            setTimeout(update, 1000)
         }
     }
 
-    interval = setInterval(update, 1000)
+    update()
 }
 
 async function onFileSelection() {
