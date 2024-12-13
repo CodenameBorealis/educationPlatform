@@ -154,12 +154,10 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
         
         const json = await result.json()
 
-        if (json["status"] == latestStatus) {
-            return
+        if (json["status"] !== latestStatus) {
+            latestStatus = json["status"]
+            updateCallback(json)
         }
-
-        latestStatus = json["status"]
-        updateCallback(json)
 
         if (updates > 60) {
             showAlert("Error", "Processing presentation took too long.", "error")
