@@ -159,10 +159,8 @@ async function trackPresentationTask(task_id, updateCallback = (data) => {}, suc
             updateCallback(json)
         }
 
-        if (updates > 60) {
+        if (updates > 180) {
             showAlert("Error", "Processing presentation took too long.", "error")
-            clearInterval(interval)
-            
             failCallback(json)
 
             return
