@@ -9,5 +9,8 @@ urlpatterns = [
     path("api/get-data/", views.GetConferenceData.as_view()),
     path("api/start/", views.StartConference.as_view()),
     path("api/end/", views.EndConference.as_view()),
-    path("api/upload-presentation/", views.UploadPresentation.as_view())
+    path("api/upload-presentation/", views.UploadPresentation.as_view()),
+    path("api/get-task-info/", views.GetTaskInformation.as_view()),
+    path("api/get-presentation-slide/", views.GetPresentationSlide.as_view()),
+    path("api/get-presentation-page-count/", views.GetPresentationPageCount.as_view())
 ]

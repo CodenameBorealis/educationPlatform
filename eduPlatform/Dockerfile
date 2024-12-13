@@ -8,7 +8,7 @@ COPY . /app
 COPY requirements.txt /app/
 
 RUN apt-get -y update && apt-get -y upgrade
-RUN apt-get -y install python3-dev default-libmysqlclient-dev build-essential pkg-config coturn
+RUN apt-get -y install python3-dev default-libmysqlclient-dev build-essential pkg-config libreoffice poppler-utils
 
 WORKDIR /app
 

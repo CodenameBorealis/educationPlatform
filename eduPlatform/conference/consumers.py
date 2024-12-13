@@ -5,10 +5,11 @@ from channels.db import database_sync_to_async as dsa
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.core.cache import cache
 
-'''
+"""
 This is the signaling server used for handling web conferences
 API endpoints are located in the views.py file
-'''
+"""
+
 
 class SignalingConsumer(AsyncWebsocketConsumer):
     def conference_exists(self, conference_token):
@@ -30,6 +31,10 @@ class SignalingConsumer(AsyncWebsocketConsumer):
     # Screen share state variables
     isScreenSharing = False
     screenShareUserID = -1
+
+    # Presentation state variables
+    presentationRunning = False
+    presentationUserID = -1
 
     # Co-Host information variables
     coHostList = set()
@@ -85,6 +90,9 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             "stop-screenshare": self.stop_screenshare,
             "add-cohost": self.add_cohost,
             "remove-cohost": self.remove_cohost,
+            "start-presentation": self.start_presentation,
+            "stop-presentation": self.stop_presentation,
+            "page-switch": self.switch_slide
         }
 
         self.activeUsers.add(self.user_id)
@@ -99,6 +107,12 @@ class SignalingConsumer(AsyncWebsocketConsumer):
         if self.user_id == self.screenShareUserID and self.isScreenSharing:
             await self.stop_screenshare(
                 {"from": self.user_id, "type": "stop-screenshare"}
+            )
+            
+        # Check if user is running a presentation
+        if self.user_id == self.presentationUserID and self.presentationRunning:
+            await self.stop_presentation(
+                {"from": self.user_id, "type": "stop-presentation"}
             )
 
         # If the user was a cohost before disconnecting, mockup a data input as host and remove the user from the cohosts list
@@ -250,12 +264,52 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             self.room_group_name, {"type": "signaling_message", "message": data}
         )
 
+    async def start_presentation(self, data):
+        # Validate user permissions
+        if data.get("from") != self.host_id and data.get("from") not in self.coHostList:
+            return
+
+        # Check if it's already running and the signal is not directed for a specific user
+        if self.presentationRunning and not (
+            data.get("to") and data.get("from") == self.presentationUserID
+        ):
+            return
+
+        self.presentationRunning = True
+        self.presentationUserID = data.get("from")
+
+        await self.channel_layer.group_send(
+            self.room_group_name, {"type": "signaling_message", "message": data}
+        )
+
+    async def stop_presentation(self, data):
+        # Check if it's running and the sender is the person who started it
+        if not self.presentationRunning or data.get("from") != self.presentationUserID:
+            return
+
+        # Reset presentation attributes
+        self.presentationRunning = False
+        self.presentationUserID = -1
+        
+        await self.channel_layer.group_send(
+            self.room_group_name, {"type": "signaling_message", "message": data}
+        )
+
+    async def switch_slide(self, data):
+        # Check if presentation is running and user has permissions to switch pages/slides
+        if not self.presentationRunning or data.get("from") != self.presentationUserID:
+            return
+        
+        await self.channel_layer.group_send(
+            self.room_group_name, {"type": "signaling_message", "message": data}
+        )
+
     async def receive(self, text_data):
         # Async function used for handling data received from the clients
 
         # Refresh the conference model and check if it has started, if not or it's already ended, ignore the signaling request
         self.conference = await dsa(self.get_conference)(self.room_token)
-        
+
         if not self.conference.started or self.conference.ended:
             return
 

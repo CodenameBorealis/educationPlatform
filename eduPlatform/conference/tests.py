@@ -1,16 +1,24 @@
+import shutil
+import os
+
 from django.test import Client, TestCase
+from django.test.utils import override_settings
 from django.contrib.auth import get_user_model
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 
 from channels.testing import WebsocketCommunicator
 from channels.auth import AuthMiddlewareStack
 from channels.db import database_sync_to_async as dsa
 from channels.layers import get_channel_layer
 
+from io import BytesIO
 from asyncio import TimeoutError
+from fpdf import FPDF
 
 from eduPlatform.asgi import application
 from .consumers import SignalingConsumer
-from .models import Conference
+from .models import Conference, Presentation
 from user.tests import BaseUserTest
 
 
@@ -332,13 +340,144 @@ class EndConferenceTest(BaseUserTest):
     def test_already_ended(self):
         self.conference.ended = True
         self.conference.save()
-        
+
         request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
         self.validate_response(request, 400)
-        
+
     def test_not_started(self):
         self.conference.started = False
         self.conference.save()
-        
+
         request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
         self.validate_response(request, 400)
+
+
+class DocumentUploadTest(BaseUserTest):
+    baseURL = "/conference/api/upload-presentation/"
+    
+    @staticmethod
+    def create_mock_pdf():
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt="This is a mock PDF for testing.", ln=True, align='C')
+
+        buffer = BytesIO()
+        buffer.write(pdf.output(dest='S').encode('latin1'))
+        buffer.seek(0) 
+        return buffer
+
+    def setUp(self):
+        self.set_up_client()
+
+        self.conference = Conference.objects.create(host=self.user)
+        self.conference.save()
+
+    def test_no_file(self):
+        request = self.client.post(f"{self.baseURL}?token={self.conference.token}")
+        self.validate_response(request, 400)
+
+    def test_invalid_format(self):
+        file = SimpleUploadedFile(
+            "test.txt",
+            b"Hello world!",
+            content_type="application/txt",
+        )
+        
+        request = self.client.post(
+            f"{self.baseURL}?token={self.conference.token}", {"file": file}
+        )
+        self.validate_response(request, 400)
+
+    def test_large_file(self):
+        file = SimpleUploadedFile(
+            "test.pdf",
+            BytesIO(b"A" * 40 * 1024 * 1024).getvalue(),
+            content_type="application/pdf",
+        )
+        
+        request = self.client.post(
+            f"{self.baseURL}?token={self.conference.token}", {"file": file}
+        )
+        self.validate_response(request, 400)
+
+    def test_request(self):
+        file = SimpleUploadedFile(
+            "test.pdf",
+            self.create_mock_pdf().read(),
+            content_type="application/pdf",
+        )
+        
+        with override_settings(CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True):            
+            request = self.client.post(
+                f"{self.baseURL}?token={self.conference.token}", {"file": file}
+            )
+        
+        self.validate_response(request, expect_json=True)
+        
+        json = request.json()
+        
+        self.assertTrue(json["success"], "Success is supposed to be true.")
+        self.assertIsNotNone(json["task_id"], "No celery task id was given.")
+        self.assertIsNotNone(json["file_token"], "No file token was given.")
+        
+        file_path = settings.UPLOAD_DIR / f"processed_documents/{json["file_token"]}"
+        
+        self.assertTrue(os.path.exists(file_path))
+        shutil.rmtree(file_path)
+      
+        
+class GetSlideTest(BaseUserTest):
+    baseURL = "/conference/api/get-presentation-slide/"
+    requestType = "GET"
+    
+    def setUp(self):
+        self.set_up_client()
+        
+        self.presentation = Presentation.objects.create(token="abc", pageCount=5)
+        self.presentation.save()
+        
+    def test_no_data(self):
+        request = self.client.get(self.baseURL)
+        self.validate_response(request, 400)
+    
+    def test_invalid_token(self):
+        request = self.client.get(f"{self.baseURL}?id=invalid&page=0")
+        self.validate_response(request, 400)
+        
+    def test_invalid_page(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=-1")
+        self.validate_response(request, 400)
+        
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=6")
+        self.validate_response(request, 400)
+    
+    def test_request(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=1")
+        self.validate_response(request, 500)
+        
+
+class GetPageCountTest(BaseUserTest):
+    baseURL = "/conference/api/get-presentation-page-count/"
+    requestType = "GET"
+    
+    def setUp(self):
+        self.set_up_client()
+        
+        self.presentation = Presentation.objects.create(token="abc", pageCount=5)
+        self.presentation.save()
+    
+    def test_no_token(self):
+        request = self.client.get(self.baseURL)
+        self.validate_response(request, 400)
+    
+    def test_invalid_token(self):
+        request = self.client.get(f"{self.baseURL}?id=invalid")
+        self.validate_response(request, 400)
+    
+    def test_request(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}")
+        self.validate_response(request, expect_json=True)
+        
+        json = request.json()
+        self.assertEqual(json.get("pages"), 5, "Invalid page count returned.")

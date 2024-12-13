@@ -28,7 +28,22 @@ services:
       - django_network
     env_file:
       - .env.production
+    volumes:
+      - ./uploads:/home/django/uploads
     
+  celery-beat-worker:
+    build: ./eduPlatform
+    command: celery -A eduPlatform beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    restart: unless-stopped
+    depends_on:
+      - redis
+    networks:
+      - django_network
+    env_file:
+      - .env.production
+    volumes:
+      - ./uploads:/home/django/uploads
+
   redis:
     image: redis:latest
     restart: unless-stopped

@@ -1,6 +1,9 @@
 const screenshareBtn = document.getElementById("screenShare")
 const presentationBtn = document.getElementById("presentation")
 
+const presPrevious = document.getElementById("pres-prev")
+const presNext = document.getElementById("pres-next")
+
 function addCoHost(remoteUserId) {
     if (!isHost || !remoteUserId) {
         return
@@ -36,7 +39,7 @@ function loadAsCoHost() {
             return
         }
 
-        if (screenShareSelf) { 
+        if (screenShareSelf) {
             await stopScreenShare()
 
             screenshareBtn.classList.remove("control-on")
@@ -46,7 +49,7 @@ function loadAsCoHost() {
         }
 
         await startScreenShare()
-        
+
         if (screenShareSelf) {
             screenshareBtn.classList.add("control-on")
             screenshareBtn.dataset.tooltip = "Stop sharing screen"
@@ -58,7 +61,27 @@ function loadAsCoHost() {
             return
         }
 
-        promptPresentationSelection()
+        if (!presentationRunning) {
+            promptPresentationSelection()
+        } else if (presentingSelf) {
+            stopPresentation()
+        }
+    })
+
+    presPrevious.addEventListener("click", () => {
+        if (!isHost || !presentationRunning) return
+        if (!presentingSelf) return
+
+        if (currentPage - 1 < 0) return
+        setPresentationPage(currentPage - 1)
+    })
+
+    presNext.addEventListener("click", () => {
+        if (!isHost || !presentationRunning) return
+        if (!presentingSelf) return
+
+        if (currentPage + 1 > maxPages) return
+        setPresentationPage(currentPage + 1)
     })
 
     isHost = true
@@ -74,11 +97,12 @@ async function unloadCoHost() {
     if (screenShareSelf) {
         await stopScreenShare()
     }
-    
+
     screenshareBtn.style.display = "none"
     screenshareBtn.removeEventListener("click")
-    
+
     presentationBtn.style.display = "none"
+    screenshareBtn.removeEventListener("click")
 
     isHost = false
     log("Unloaded host view")
