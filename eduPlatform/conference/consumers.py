@@ -179,9 +179,12 @@ class SignalingConsumer(AsyncWebsocketConsumer):
 
         self.coHostList.remove(target)
 
-        # If the user was sharing their screen, stop it
+        # If the user was sharing their screen or presenting, stop it
         if self.isScreenSharing and self.screenShareUserID == target:
             await self.stop_screenshare({"from": target, "type": "stop-screenshare"})
+
+        if self.presentationRunning and self.presentationUserID == target:
+            await self.stop_screenshare({"from": target, "type": "stop-presentation"})
 
         await self.channel_layer.group_send(
             f"private_user{target}",

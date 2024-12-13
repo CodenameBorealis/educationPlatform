@@ -29,10 +29,7 @@ function loadPresentation() {
 
 function unloadPresentation() {
     presentationFrame.style.display = "none"
-
-    if (presentingSelf) {
-        presControls.style.display = "none"
-    }
+    presControls.style.display = "none"
 }
 
 async function setPresentationPage(pageNumber) {
