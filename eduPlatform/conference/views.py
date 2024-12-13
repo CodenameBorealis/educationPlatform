@@ -207,14 +207,16 @@ class GetTaskInformation(APIView):
         id = request.GET.get("id")
         if not id:
             return Response("No task ID was given.", status=status.HTTP_400_BAD_REQUEST)
-
-        result = AsyncResult(id)
-        return_data = {
-            "status": result.status,
-            "result": result.result,
-            "successful": result.successful(),
-            "failed": result.failed(),
-        }
+        try:
+            result = AsyncResult(id)
+            return_data = {
+                "status": result.status,
+                "result": result.result,
+                "successful": result.successful(),
+                "failed": result.failed(),
+            }
+        except Exception:
+            return Response("Failed to fetch data, internal server error.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(return_data, status=status.HTTP_200_OK)
 
