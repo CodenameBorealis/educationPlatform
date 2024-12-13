@@ -80,7 +80,7 @@ async function startPresentation(token) {
     }
 
     const json = await request.json()
-    if (!json.pages) {
+    if (json.pages === null || json.pages < 0) {
         showAlert("Error", "Failed to start presentation.", "error")
         log("Failed to start presentation, get page count request doesn't contain pages field.", "error", false)
 
