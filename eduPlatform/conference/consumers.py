@@ -184,7 +184,7 @@ class SignalingConsumer(AsyncWebsocketConsumer):
             await self.stop_screenshare({"from": target, "type": "stop-screenshare"})
 
         if self.presentationRunning and self.presentationUserID == target:
-            await self.stop_screenshare({"from": target, "type": "stop-presentation"})
+            await self.stop_presentation({"from": target, "type": "stop-presentation"})
 
         await self.channel_layer.group_send(
             f"private_user{target}",
