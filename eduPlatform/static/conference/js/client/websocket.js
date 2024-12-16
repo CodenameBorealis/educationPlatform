@@ -49,8 +49,12 @@ async function handleGlobalSignaling(type, from, data) {
             presentationToken = data.token
             presentationRunning = true
 
+            presentingUser = from
+
             loadPresentation()
             setPresentationPage(data.page || 0)
+
+            startInterpolation()
         },
         "page-switch": async () => {
             if (!presentationRunning) {
@@ -72,7 +76,21 @@ async function handleGlobalSignaling(type, from, data) {
             presentationToken = null
             presentationRunning = false
 
+            presentingUser = null
+
+            stopInterpolation()
             unloadPresentation()
+        },
+        "update-cursor": async () => {
+            if (!presentationRunning || presentingSelf) {
+                return
+            }
+
+            if (from !== presentingUser) {
+                return
+            }
+
+            updateInterpolation(data.x, data.y)
         }
     }
 
