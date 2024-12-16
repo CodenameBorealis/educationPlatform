@@ -313,6 +313,8 @@ async function initializeConnection(token) {
 }
 
 consoleBasedLogs = true
+verboseLogsEnabled = false
+
 initializeConnection(match)
 
 chatOpenBtn.addEventListener("click", () => {
