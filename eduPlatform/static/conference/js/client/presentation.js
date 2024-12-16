@@ -286,8 +286,6 @@ function updateMouse(event) {
     const relativeX = mouseXInImage / imageRect.width
     const relativeY = mouseYInImage / imageRect.height
     currentPosition = { x: relativeX, y: relativeY }
-
-    console.log(currentPosition)
 }
 
 function startMouseTracking() {
