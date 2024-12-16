@@ -266,15 +266,28 @@ function updateMouse(event) {
         return
     }
 
-    const rect = presentationFrame.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
+    const frameRect = document.getElementById('presentation-frame').getBoundingClientRect()
+    const imageRect = document.getElementById('presentation-slide').getBoundingClientRect()
 
-    pointer.style.left = `${x}px`;
-    pointer.style.top = `${y}px`;
-    pointer.style.transform = `translate(-50%, -50%)`;
+    const mouseXInFrame = event.clientX - frameRect.left
+    const mouseYInFrame = event.clientY - frameRect.top
 
-    currentPosition = { x: x, y: y }
+    const imageRatioX = imageRect.width / frameRect.width
+    const imageRatioY = imageRect.height / frameRect.height
+
+    const mouseXInImage = mouseXInFrame * imageRatioX
+    const mouseYInImage = mouseYInFrame * imageRatioY
+
+    const pointer = document.getElementById('pointer')
+    pointer.style.left = `${mouseXInFrame}px`
+    pointer.style.top = `${mouseYInFrame}px`
+    pointer.style.transform = 'translate(-50%, -50%)'
+
+    const relativeX = mouseXInImage / imageRect.width
+    const relativeY = mouseYInImage / imageRect.height
+    currentPosition = { x: relativeX, y: relativeY }
+
+    console.log(currentPosition)
 }
 
 function startMouseTracking() {
@@ -307,8 +320,8 @@ function interpolateCursor() {
     currentPosition.x += (targetPosition.x - currentPosition.x) * speed
     currentPosition.y += (targetPosition.y - currentPosition.y) * speed
 
-    pointer.style.left = `${currentPosition.x}px`
-    pointer.style.top = `${currentPosition.y}px`
+    pointer.style.left = `${currentPosition.x * 100}%`
+    pointer.style.top = `${currentPosition.y * 100}%`
 
     animationFrame = requestAnimationFrame(interpolateCursor)
 }
