@@ -6,6 +6,8 @@ const presentationSlide = document.getElementById("presentation-slide")
 const presControls = document.getElementById("pres-controls")
 const presPages = document.getElementById("pres-pages")
 
+const pointer = document.getElementById('pointer');
+
 var presentationRunning = false
 var presentingSelf = false
 
@@ -14,6 +16,16 @@ var fileSelectionDisabled = false
 var currentPage = 0
 var maxPages
 var presentationToken
+
+var presentingUser
+
+var mouseTrackingEnabled = false
+var mouseTrackingInterval
+
+var isInterpolating = false;
+var currentPosition = { x: 0, y: 0}
+var targetPosition = { x: 0, y:0 }
+var animationFrame
 
 function loadPresentation() {
     if (isSharingScreen || !presentationRunning) {
@@ -91,6 +103,8 @@ async function startPresentation(token) {
     presentingSelf = true
     presentationRunning = true
 
+    startMouseTracking()
+
     loadPresentation()
     setPresentationPage(0)
 
@@ -115,6 +129,7 @@ function stopPresentation() {
 
     presentationBtn.classList.remove("control-on")
 
+    stopMouseTracking()
     unloadPresentation()
 
     ws.send(JSON.stringify({
@@ -246,4 +261,76 @@ async function onFileSelection() {
     )
 }
 
+function updateMouse(event) {
+    if (!mouseTrackingEnabled) {
+        return
+    }
+
+    const rect = presentationFrame.getBoundingClientRect()
+    const x = event.clientX - rect.left
+    const y = event.clientY - rect.top
+
+    pointer.style.left = `${x}px`;
+    pointer.style.top = `${y}px`;
+    pointer.style.transform = `translate(-50%, -50%)`;
+
+    currentPosition = { x: x, y: y }
+}
+
+function startMouseTracking() {
+    const updateTime = 1000 / 30 // 15 fps
+
+    mouseTrackingEnabled = true
+    mouseTrackingInterval = setInterval(() => {
+        ws.send(JSON.stringify({
+            type: "update-cursor",
+            x: currentPosition.x,
+            y: currentPosition.y
+        }))
+    }, updateTime);
+}
+
+function stopMouseTracking() {
+    mouseTrackingEnabled = false
+
+    clearInterval(mouseTrackingInterval)
+    mouseTrackingInterval = null
+}
+
+function interpolateCursor() {
+    if (!isInterpolating || mouseTrackingEnabled) {
+        return
+    }
+    
+    const speed = 0.1
+
+    currentPosition.x += (targetPosition.x - currentPosition.x) * speed
+    currentPosition.y += (targetPosition.y - currentPosition.y) * speed
+
+    pointer.style.left = `${currentPosition.x}px`
+    pointer.style.top = `${currentPosition.y}px`
+
+    animationFrame = requestAnimationFrame(interpolateCursor)
+}
+
+function updateInterpolation(x, y) {
+    if (!x || !y) {
+        return
+    }
+
+    targetPosition = { x: x, y: y }
+}
+
+function startInterpolation() {
+    isInterpolating = true
+    interpolateCursor()
+}
+
+function stopInterpolation() {
+    isInterpolating = false
+    cancelAnimationFrame(animationFrame)
+}
+
 fileInput.addEventListener("change", onFileSelection)
+
+presentationFrame.addEventListener("mousemove", updateMouse)
