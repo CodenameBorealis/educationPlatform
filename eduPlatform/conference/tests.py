@@ -354,17 +354,17 @@ class EndConferenceTest(BaseUserTest):
 
 class DocumentUploadTest(BaseUserTest):
     baseURL = "/conference/api/upload-presentation/"
-    
+
     @staticmethod
     def create_mock_pdf():
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt="This is a mock PDF for testing.", ln=True, align='C')
+        pdf.cell(200, 10, txt="This is a mock PDF for testing.", ln=True, align="C")
 
         buffer = BytesIO()
-        buffer.write(pdf.output(dest='S').encode('latin1'))
-        buffer.seek(0) 
+        buffer.write(pdf.output(dest="S").encode("latin1"))
+        buffer.seek(0)
         return buffer
 
     def setUp(self):
@@ -383,7 +383,7 @@ class DocumentUploadTest(BaseUserTest):
             b"Hello world!",
             content_type="application/txt",
         )
-        
+
         request = self.client.post(
             f"{self.baseURL}?token={self.conference.token}", {"file": file}
         )
@@ -395,7 +395,7 @@ class DocumentUploadTest(BaseUserTest):
             BytesIO(b"A" * 40 * 1024 * 1024).getvalue(),
             content_type="application/pdf",
         )
-        
+
         request = self.client.post(
             f"{self.baseURL}?token={self.conference.token}", {"file": file}
         )
@@ -407,77 +407,119 @@ class DocumentUploadTest(BaseUserTest):
             self.create_mock_pdf().read(),
             content_type="application/pdf",
         )
-        
-        with override_settings(CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True):            
+
+        with override_settings(
+            CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True
+        ):
             request = self.client.post(
                 f"{self.baseURL}?token={self.conference.token}", {"file": file}
             )
-        
+
         self.validate_response(request, expect_json=True)
-        
+
         json = request.json()
-        
+
         self.assertTrue(json["success"], "Success is supposed to be true.")
         self.assertIsNotNone(json["task_id"], "No celery task id was given.")
         self.assertIsNotNone(json["file_token"], "No file token was given.")
-        
+
         file_path = settings.UPLOAD_DIR / f"processed_documents/{json["file_token"]}"
-        
+
         self.assertTrue(os.path.exists(file_path))
         shutil.rmtree(file_path)
-      
-        
+
+
 class GetSlideTest(BaseUserTest):
     baseURL = "/conference/api/get-presentation-slide/"
     requestType = "GET"
-    
+
     def setUp(self):
         self.set_up_client()
-        
+
         self.presentation = Presentation.objects.create(token="abc", pageCount=5)
         self.presentation.save()
-        
+
     def test_no_data(self):
         request = self.client.get(self.baseURL)
         self.validate_response(request, 400)
-    
+
     def test_invalid_token(self):
         request = self.client.get(f"{self.baseURL}?id=invalid&page=0")
         self.validate_response(request, 400)
-        
+
     def test_invalid_page(self):
-        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=-1")
+        request = self.client.get(
+            f"{self.baseURL}?id={self.presentation.token}&page=-1"
+        )
         self.validate_response(request, 400)
-        
+
         request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=6")
         self.validate_response(request, 400)
-    
+
     def test_request(self):
         request = self.client.get(f"{self.baseURL}?id={self.presentation.token}&page=1")
         self.validate_response(request, 500)
-        
+
 
 class GetPageCountTest(BaseUserTest):
     baseURL = "/conference/api/get-presentation-page-count/"
     requestType = "GET"
+
+    def setUp(self):
+        self.set_up_client()
+
+        self.presentation = Presentation.objects.create(token="abc", pageCount=5)
+        self.presentation.save()
+
+    def test_no_token(self):
+        request = self.client.get(self.baseURL)
+        self.validate_response(request, 400)
+
+    def test_invalid_token(self):
+        request = self.client.get(f"{self.baseURL}?id=invalid")
+        self.validate_response(request, 400)
+
+    def test_request(self):
+        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}")
+        self.validate_response(request, expect_json=True)
+
+        json = request.json()
+        self.assertEqual(json.get("pages"), 5, "Invalid page count returned.")
+
+
+class GetConferencesTest(BaseUserTest):
+    baseURL = "/conference/api/get-conferences/"
+    requestType = "GET"
     
     def setUp(self):
         self.set_up_client()
         
-        self.presentation = Presentation.objects.create(token="abc", pageCount=5)
-        self.presentation.save()
-    
-    def test_no_token(self):
-        request = self.client.get(self.baseURL)
-        self.validate_response(request, 400)
-    
-    def test_invalid_token(self):
-        request = self.client.get(f"{self.baseURL}?id=invalid")
-        self.validate_response(request, 400)
-    
+        self.conference = Conference.objects.create(
+            name="Some name",
+            host=self.user,
+        )
+        self.conference.save()
+        
+        self.user2 = self.User.objects.create_user(username="something", email="something@email.com", password="12346789")
+        
+        self.conference2 = Conference.objects.create(
+            name="Some name 2",
+            host=self.user2,
+        )
+        self.conference2.save()
+
     def test_request(self):
-        request = self.client.get(f"{self.baseURL}?id={self.presentation.token}")
+        request = self.client.get(self.baseURL)
         self.validate_response(request, expect_json=True)
         
         json = request.json()
-        self.assertEqual(json.get("pages"), 5, "Invalid page count returned.")
+        
+        for conference in json:
+            if conference["token"] != self.conference.token:
+                self.assertNotEqual(conference["token"], self.conference2.token, "Returned a conference that user has no access to.")
+                
+                continue
+            
+            self.assertEqual(conference["name"], self.conference.name, "Invalid conference name given.")
+            self.assertEqual(conference["host"], self.user.id, "Invalid host id given.")
+            self.assertEqual(conference["host_name"], self.user.username, "Invalid host username given.")

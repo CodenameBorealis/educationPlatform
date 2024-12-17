@@ -13,6 +13,7 @@ from django.shortcuts import redirect
 from django.utils.timezone import now
 from django.conf import settings
 from django.http.response import FileResponse
+from django.db.models import Q
 
 from datetime import timedelta
 from os import path
@@ -26,10 +27,10 @@ from celery.app.control import Control
 from .mixins import ConferencePermissionsMixin
 from . import tasks as tasks
 from . import serializers
-from .models import Presentation
+from .models import Presentation, Conference
 
 
-class Conference(View):
+class ConferenceView(View):
     def get(self, request, token, *args, **kwargs):
         if not request.user or not request.user.is_authenticated:
             return redirect("home")
@@ -216,7 +217,10 @@ class GetTaskInformation(APIView):
                 "failed": result.failed(),
             }
         except Exception:
-            return Response("Failed to fetch data, internal server error.", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                "Failed to fetch data, internal server error.",
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         return Response(return_data, status=status.HTTP_200_OK)
 
@@ -289,3 +293,33 @@ class GetPresentationPageCount(APIView):
             )
 
         return Response({"pages": presentation.pageCount}, status=status.HTTP_200_OK)
+
+
+class GetUserConferences(APIView):
+    """
+    An API call located at /conference/api/get-conferences/
+    Used to fetch information about all the conferences that user is currently participating in
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        conferences = Conference.objects.filter(Q(host=request.user) | Q(allowed_users=request.user)).distinct()
+        
+        returnData = []
+
+        for conference in conferences:
+            returnData.append(
+                {
+                    "name": conference.name,
+                    "host": conference.host.id,
+                    "host_name": conference.host.username,
+                    "token": conference.token,
+                    "started": conference.started,
+                    "start_time": conference.start_time,
+                    "ended": conference.ended,
+                    "end_time": conference.end_time,
+                }
+            )
+
+        return Response(returnData, status=status.HTTP_200_OK)
