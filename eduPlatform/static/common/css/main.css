@@ -1,5 +1,6 @@
 .meetings-frame {
-    width: 600px; /* Adjust width to your liking */
+    max-width: 600px;
+    width: 100%;
     margin: auto;
     margin-top: 60px;
 }
@@ -97,4 +98,16 @@
 
 .text-danger::after {
     background-color: #f66 !important;
+}
+
+@media (max-width: 525px) {
+    .meeting {
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .meeting-time {
+        align-items: center;
+    }
 }
