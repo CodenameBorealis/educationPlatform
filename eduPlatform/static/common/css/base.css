@@ -4,13 +4,36 @@
     font-family: "Montserrat", sans-serif;
 }
 
+/* Scrool bar style */
+
+html {
+    scrollbar-color: #444 #1e1e1e;
+    scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1c1e2e;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #323655;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #535b96;
+}
 
 /* Naviation bar style */
 
 .navigation-bar {
     width: 100%;
     background-color: #1C1E2D;
-    /* z-index: 5; */
 }
 
 .brand-name {
@@ -124,7 +147,7 @@
     border: none;
     cursor: pointer;
     padding: 0;
-    z-index: 1100; 
+    z-index: 1100;
 }
 
 .navbar-toggler:focus {
@@ -156,7 +179,7 @@
     .navbar-toggler {
         display: flex;
     }
-    
+
     .navbar_collapse {
         display: none !important;
         flex-direction: column;
@@ -170,12 +193,12 @@
         z-index: 1050;
         transition: .3s;
     }
-    
+
     .navbar_collapse.shown {
         display: flex !important;
     }
 
-    .navbar-links > a {
+    .navbar-links>a {
         margin-bottom: 20px;
     }
 
@@ -183,5 +206,5 @@
         display: flex !important;
         flex-direction: column;
     }
-    
+
 }
